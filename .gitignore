@@ -43,3 +43,5 @@ mssql-data/
 bases/
 Context/
 00_ESTRUCTURA_PROYECTO_SHOPCART.md
+.agents/
+AGENTS.md

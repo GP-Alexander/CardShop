@@ -184,6 +184,34 @@ async function verifyCounts(pool: sql.ConnectionPool) {
   }
 }
 
+async function runSeeds(pool: sql.ConnectionPool, seedsDir: string) {
+  if (!fs.existsSync(seedsDir)) return;
+
+  const files = fs
+    .readdirSync(seedsDir)
+    .filter((f) => f.endsWith(".sql"))
+    .sort();
+
+  if (files.length === 0) {
+    console.log("[Runner] No hay archivos de semillas pendientes.");
+    return;
+  }
+
+  for (const file of files) {
+    const fullPath = path.join(seedsDir, file);
+    const content = fs.readFileSync(fullPath, "utf-8");
+    const batches = splitBatches(content);
+
+    console.log(`[Runner] Aplicando datos semilla: ${file}...`);
+    for (const batch of batches) {
+      if (batch.trim().length === 0) continue;
+      const request = pool.request();
+      await request.query(batch);
+    }
+    console.log(`[Runner] OK -> ${file}`);
+  }
+}
+
 async function main() {
   try {
     await ensureDatabaseExists();
@@ -196,6 +224,16 @@ async function main() {
     const basePath = path.resolve(__dirname, "..");
     const migrationsDir = path.join(basePath, "migrations");
     const programmableDir = path.join(basePath, "programmable");
+    const seedsDir = path.join(basePath, "seeds");
+
+    const isSeedsOnly = process.argv.includes("--seeds-only");
+    if (isSeedsOnly) {
+      console.log("\n--- APLICANDO DATOS SEMILLA (--seeds-only) ---");
+      await runSeeds(pool, seedsDir);
+      await pool.close();
+      console.log("\n[Runner] ¡Semillas aplicadas con éxito!");
+      process.exit(0);
+    }
 
     console.log("\n--- 1. APLICANDO MIGRACIONES ---");
     await runMigrationsWithTransaction(pool, migrationsDir);
@@ -205,8 +243,11 @@ async function main() {
 
     await verifyCounts(pool);
 
+    console.log("\n--- 3. APLICANDO DATOS SEMILLA ---");
+    await runSeeds(pool, seedsDir);
+
     await pool.close();
-    console.log("\n[Runner] ¡Migración y verificación finalizadas con éxito total!");
+    console.log("\n[Runner] ¡Migración, verificación y semillas finalizadas con éxito total!");
     process.exit(0);
   } catch (err) {
     console.error("\n[Runner] ERROR FATAL EN MIGRACIÓN:", err);
@@ -215,3 +256,4 @@ async function main() {
 }
 
 main();
+

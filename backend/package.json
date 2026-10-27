@@ -8,6 +8,7 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
+    "create-admin": "tsx src/scripts/crear-admin.ts",
     "test": "vitest run tests/integration/auth.test.ts",
     "test:all": "vitest run"
   },

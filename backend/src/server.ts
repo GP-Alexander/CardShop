@@ -11,7 +11,7 @@ async function bootstrap() {
     await getDbPool();
 
     const app = createApp();
-    const server = app.listen(env.PORT, () => {
+    const server = app.listen(env.PORT, "0.0.0.0", () => {
       logger.info(`🚀 Servidor ejecutándose en http://localhost:${env.PORT}${env.API_PREFIX}`);
     });
 

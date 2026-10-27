@@ -133,6 +133,147 @@ END;
 GO
 
 /* =========================================================================
+   1.1. SP_Usuario_RegistrarInterno
+   Registra un usuario interno (Operador o Administrador) con validación
+   de rol, idempotencia y registro en la Bitácora de Auditoría (RF-01, RF-09).
+   ========================================================================= */
+CREATE OR ALTER PROCEDURE dbo.SP_Usuario_RegistrarInterno
+    @Nombres NVARCHAR(100),
+    @Apellidos NVARCHAR(100),
+    @Correo NVARCHAR(254),
+    @NombreRol NVARCHAR(50),
+    @HashContrasena NVARCHAR(255),
+    @Telefono NVARCHAR(30) = NULL,
+    @DireccionIP VARCHAR(45) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+
+    -- Validaciones de entrada
+    IF @Nombres IS NULL OR LTRIM(RTRIM(@Nombres)) = ''
+        THROW 50001, N'El nombre del usuario es obligatorio.', 1;
+
+    IF @Apellidos IS NULL OR LTRIM(RTRIM(@Apellidos)) = ''
+        THROW 50001, N'El apellido del usuario es obligatorio.', 1;
+
+    IF @Correo IS NULL OR LTRIM(RTRIM(@Correo)) = '' OR @Correo NOT LIKE N'_%@_%._%'
+        THROW 50001, N'El correo electrónico no tiene un formato válido.', 1;
+
+    IF @NombreRol NOT IN (N'Operador', N'Administrador')
+        THROW 50001, N'El rol especificado debe ser Operador o Administrador.', 1;
+
+    IF @HashContrasena IS NULL OR LTRIM(RTRIM(@HashContrasena)) = ''
+        THROW 50001, N'El hash de contraseña es obligatorio.', 1;
+
+    SET @Correo = LOWER(LTRIM(RTRIM(@Correo)));
+
+    -- Si ya existe, retornar el usuario existente de forma idempotente
+    IF EXISTS (SELECT 1 FROM dbo.Usuario WHERE Correo = @Correo)
+    BEGIN
+        SELECT 
+            u.IDUsuario,
+            u.Nombres,
+            u.Apellidos,
+            u.Correo,
+            u.Telefono,
+            r.Nombre AS NombreRol,
+            u.EstaActivo,
+            u.FechaCreacion
+        FROM dbo.Usuario u
+        JOIN dbo.Rol r ON u.IDRol = r.IDRol
+        WHERE u.Correo = @Correo;
+        RETURN;
+    END
+
+    -- Obtener ID del rol
+    DECLARE @IDRol INT;
+    SELECT @IDRol = IDRol FROM dbo.Rol WHERE Nombre = @NombreRol AND EstaActivo = 1;
+
+    IF @IDRol IS NULL
+        THROW 50200, N'Error de configuración: El rol solicitado no existe o no está activo.', 1;
+
+    DECLARE @NuevoIDUsuario INT;
+    DECLARE @ValorNuevoJson NVARCHAR(MAX);
+
+    BEGIN TRANSACTION;
+
+        INSERT INTO dbo.Usuario (
+            IDRol,
+            Nombres,
+            Apellidos,
+            Correo,
+            Telefono,
+            HashContrasena,
+            EstaActivo,
+            FechaCreacion,
+            FechaActualizacion
+        )
+        VALUES (
+            @IDRol,
+            LTRIM(RTRIM(@Nombres)),
+            LTRIM(RTRIM(@Apellidos)),
+            @Correo,
+            NULLIF(LTRIM(RTRIM(@Telefono)), ''),
+            @HashContrasena,
+            1,
+            SYSUTCDATETIME(),
+            SYSUTCDATETIME()
+        );
+
+        SET @NuevoIDUsuario = SCOPE_IDENTITY();
+
+        -- Preparar JSON para auditoría en bitácora (RF-09)
+        SET @ValorNuevoJson = (
+            SELECT 
+                @NuevoIDUsuario AS idUsuario,
+                @Correo AS correo,
+                @NombreRol AS rol,
+                1 AS estaActivo
+            FOR JSON PATH, WITHOUT_ARRAY_WRAPPER
+        );
+
+        INSERT INTO dbo.RegistroBitacora (
+            FechaEvento,
+            IDUsuario,
+            Modulo,
+            Entidad,
+            IDRegistro,
+            Accion,
+            ValorAnterior,
+            ValorNuevo,
+            DireccionIP
+        )
+        VALUES (
+            SYSUTCDATETIME(),
+            @NuevoIDUsuario,
+            'usuarios',
+            'Usuario',
+            CAST(@NuevoIDUsuario AS NVARCHAR(100)),
+            'registro_usuario_interno',
+            NULL,
+            @ValorNuevoJson,
+            @DireccionIP
+        );
+
+    COMMIT TRANSACTION;
+
+    SELECT 
+        u.IDUsuario,
+        u.Nombres,
+        u.Apellidos,
+        u.Correo,
+        u.Telefono,
+        r.Nombre AS NombreRol,
+        u.EstaActivo,
+        u.FechaCreacion
+    FROM dbo.Usuario u
+    JOIN dbo.Rol r ON u.IDRol = r.IDRol
+    WHERE u.IDUsuario = @NuevoIDUsuario;
+END;
+GO
+
+/* =========================================================================
    2. SP_Usuario_ObtenerPorCorreo
    Obtiene los datos del usuario y sus permisos por correo para autenticación.
    ========================================================================= */
