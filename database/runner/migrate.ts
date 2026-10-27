@@ -34,10 +34,23 @@ const masterConfig: sql.config = {
 };
 
 async function ensureDatabaseExists() {
+  const isReset = process.argv.includes("--reset");
   console.log(`[Runner] Verificando base de datos '${dbConfig.database}' en SQL Server...`);
   const pool = await new sql.ConnectionPool(masterConfig).connect();
   try {
     const dbName = dbConfig.database;
+    if (isReset) {
+      console.log(`[Runner] Modo --reset: eliminando base de datos previa '${dbName}'...`);
+      await pool.request().query(`
+        IF EXISTS (SELECT name FROM sys.databases WHERE name = '${dbName}')
+        BEGIN
+          ALTER DATABASE [${dbName}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+          DROP DATABASE [${dbName}];
+          PRINT 'Base de datos previa eliminada.';
+        END
+      `);
+    }
+
     await pool.request().query(`
       IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = '${dbName}')
       BEGIN

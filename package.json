@@ -11,6 +11,7 @@
   ],
   "scripts": {
     "db:migrate": "npm --workspace=database run migrate",
+    "db:reset": "npm --workspace=database run reset",
     "db:seed": "npm --workspace=database run seed",
     "dev:backend": "npm --workspace=backend run dev",
     "dev:frontend": "npm --workspace=frontend run dev",

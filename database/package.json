@@ -5,6 +5,7 @@
   "description": "Scripts SQL versionados, objetos programables y runner de migraciones",
   "scripts": {
     "migrate": "tsx runner/migrate.ts",
+    "reset": "tsx runner/migrate.ts --reset",
     "seed": "tsx runner/migrate.ts --seeds-only"
   },
   "dependencies": {
