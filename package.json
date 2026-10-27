@@ -1,0 +1,33 @@
+{
+  "name": "shopcart",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Plataforma de ventas ShopCart - Tech Challenge 360",
+  "workspaces": [
+    "packages/*",
+    "backend",
+    "frontend",
+    "database"
+  ],
+  "scripts": {
+    "db:migrate": "npm --workspace=database run migrate",
+    "db:seed": "npm --workspace=database run seed",
+    "dev:backend": "npm --workspace=backend run dev",
+    "dev:frontend": "npm --workspace=frontend run dev",
+    "dev": "npm --workspace=backend run dev",
+    "build:contracts": "npm --workspace=@shopcart/contracts run build",
+    "build:backend": "npm --workspace=backend run build",
+    "build:frontend": "npm --workspace=frontend run build",
+    "build": "npm run build:contracts && npm run build:backend",
+    "test": "npm --workspace=backend run test"
+  },
+  "keywords": [
+    "shopcart",
+    "ecommerce",
+    "sql-server",
+    "express",
+    "typescript"
+  ],
+  "author": "",
+  "license": "UNLICENSED"
+}
