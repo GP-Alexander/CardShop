@@ -23,6 +23,8 @@ export function manejarErrores(
   logger.error({ err }, "Error interno no controlado");
 
   res.status(500).json({
+
+
     exito: false,
     codigoHttp: 500,
     mensaje: "Ha ocurrido un error interno en el servidor.",

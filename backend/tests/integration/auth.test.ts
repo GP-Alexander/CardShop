@@ -129,6 +129,17 @@ describe("Módulo de Autenticación y Autorización (RF-01)", () => {
     // Debe haber entregado una cookie con un refresh token nuevo
     const newCookies = res.headers["set-cookie"];
     expect(newCookies).toBeDefined();
+
+    // 7b. Simulación de múltiples recargas (F5) consecutivas en el navegador
+    let cookieActual = newCookies;
+    for (let i = 1; i <= 3; i++) {
+      const reloadRes = await request(app)
+        .post("/api/v1/auth/refresh")
+        .set("Cookie", cookieActual);
+      expect(reloadRes.status).toBe(200);
+      expect(reloadRes.body.exito).toBe(true);
+      cookieActual = reloadRes.headers["set-cookie"];
+    }
   });
 
   it("8. SEGURIDAD: Debe detectar REUSO del refresh token anterior y revocar la familia", async () => {

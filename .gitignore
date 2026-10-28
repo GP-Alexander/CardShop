@@ -39,6 +39,11 @@ Thumbs.db
 docker-data/
 mssql-data/
 
+# Uploads
+uploads/
+**/uploads/*
+!**/uploads/.gitkeep
+
 # Archivos y carpetas de uso personal / referencia
 bases/
 Context/

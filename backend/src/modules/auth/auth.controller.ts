@@ -9,8 +9,8 @@ export class AuthController {
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
       secure: env.NODE_ENV === "production",
-      sameSite: "strict",
-      path: `${env.API_PREFIX}/auth`,
+      sameSite: "lax",
+      path: "/",
       maxAge: env.JWT_REFRESH_EXPIRATION_DAYS * 24 * 60 * 60 * 1000,
     });
   }
@@ -19,8 +19,8 @@ export class AuthController {
     res.clearCookie("refreshToken", {
       httpOnly: true,
       secure: env.NODE_ENV === "production",
-      sameSite: "strict",
-      path: `${env.API_PREFIX}/auth`,
+      sameSite: "lax",
+      path: "/",
     });
   }
 
@@ -37,6 +37,7 @@ export class AuthController {
         datos: {
           usuario: resultado.usuario,
           accessToken: resultado.accessToken,
+          refreshToken: resultado.refreshToken,
           expiraEnSegundos: resultado.expiraEnSegundos,
         },
       });
@@ -58,6 +59,7 @@ export class AuthController {
         datos: {
           usuario: resultado.usuario,
           accessToken: resultado.accessToken,
+          refreshToken: resultado.refreshToken,
           expiraEnSegundos: resultado.expiraEnSegundos,
         },
       });
@@ -68,7 +70,7 @@ export class AuthController {
 
   refresh = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const tokenActual = req.cookies?.refreshToken || req.body?.refreshToken;
+      const tokenActual = req.body?.refreshToken || req.cookies?.refreshToken;
       const direccionIp = req.ip || req.socket.remoteAddress;
 
       const resultado = await this.authService.refrescarSesion(tokenActual, direccionIp);
@@ -80,6 +82,7 @@ export class AuthController {
         mensaje: "Sesión renovada exitosamente.",
         datos: {
           accessToken: resultado.accessToken,
+          refreshToken: resultado.nuevoRefreshToken,
           usuario: resultado.usuario,
         },
       });

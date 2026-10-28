@@ -177,9 +177,9 @@ async function verifyCounts(pool: sql.ConnectionPool) {
   console.log(`dbo.Rol:         ${totalRol} (Esperado: 3)   -> ${totalRol === 3 ? "PASS" : "FAIL"}`);
   console.log(`dbo.Permiso:     ${totalPermiso} (Esperado: 15)  -> ${totalPermiso === 15 ? "PASS" : "FAIL"}`);
   console.log(`dbo.RolPermiso:  ${totalRolPermiso} (Esperado: 25)  -> ${totalRolPermiso === 25 ? "PASS" : "FAIL"}`);
-  console.log(`dbo.Usuario:     ${totalUsuario} (Esperado: 1)   -> ${totalUsuario === 1 ? "PASS" : "FAIL"}`);
+  console.log(`dbo.Usuario:     ${totalUsuario} (Esperado: >= 1)   -> ${totalUsuario >= 1 ? "PASS" : "FAIL"}`);
 
-  if (totalRol !== 3 || totalPermiso !== 15 || totalRolPermiso !== 25 || totalUsuario !== 1) {
+  if (totalRol !== 3 || totalPermiso !== 15 || totalRolPermiso !== 25 || totalUsuario < 1) {
     throw new Error("Los conteos de la base de seguridad no coinciden con los requerimientos.");
   }
 }

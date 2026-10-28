@@ -10,8 +10,12 @@ export function validar(schema: ZodSchema, ubicacion: UbicacionRequest = "body")
       req[ubicacion] = schema.parse(req[ubicacion]);
       next();
     } catch (error) {
-      if (error instanceof ZodError) {
-        const detalles = error.errors.map((e) => ({
+      if (
+        error instanceof ZodError ||
+        (typeof error === "object" && error !== null && (error as any).name === "ZodError")
+      ) {
+        const zodErr = error as ZodError;
+        const detalles = zodErr.errors.map((e) => ({
           campo: e.path.join("."),
           mensaje: e.message,
         }));
@@ -20,5 +24,6 @@ export function validar(schema: ZodSchema, ubicacion: UbicacionRequest = "body")
         next(error);
       }
     }
+
   };
 }

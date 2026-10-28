@@ -7,3 +7,7 @@ export * from "./checkout";
 export * from "./pedidos";
 export * from "./devoluciones";
 export * from "./reportes";
+export * from "./usuarios";
+export * from "./direcciones";
+export * from "./bitacora";
+export * from "./catalogos";

@@ -34,10 +34,21 @@ export function mapearErrorSql(error: unknown): Error {
     return new ValidationError(msg);
   }
 
+  // Errores HTTP directos (50403 -> 403 Forbidden, 50404 -> 404 Not Found)
+  if (num === 50403) {
+    return new ForbiddenError(msg, `SQL_${num}`);
+  }
+  if (num === 50404) {
+    return new NotFoundError(msg, `SQL_${num}`);
+  }
+
   // 2. Catálogo (50100 a 50199)
   if (num >= 50100 && num <= 50199) {
     if (num === 50104) {
       return new NotFoundError(msg, `SQL_${num}`);
+    }
+    if (num === 50109) {
+      return new ConflictError(msg, `SQL_${num}`);
     }
     return new BadRequestError(msg, `SQL_${num}`);
   }
