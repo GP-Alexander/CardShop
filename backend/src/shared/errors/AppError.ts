@@ -58,3 +58,12 @@ export class ValidationError extends AppError {
     super(mensaje, 422, "ERROR_VALIDACION", detalles);
   }
 }
+
+export class TooManyRequestsError extends AppError {
+  constructor(
+    mensaje: string = "Demasiadas peticiones. Por favor, intenta más tarde.",
+    codigoInterno: string = "RATE_LIMIT_EXCEDIDO"
+  ) {
+    super(mensaje, 429, codigoInterno);
+  }
+}

@@ -7,6 +7,8 @@ import fs from "fs";
 import { env } from "./config/env";
 import { apiRouter } from "./routes";
 import { manejarErrores } from "./shared/middlewares/manejarErrores";
+import swaggerUi from "swagger-ui-express";
+import { swaggerSpec, swaggerUiOptions } from "./config/swagger";
 
 export function createApp(): Express {
   const app = express();
@@ -20,10 +22,11 @@ export function createApp(): Express {
   // Servir archivos estáticos subidos (/uploads)
   app.use("/uploads", express.static(carpetaUploads, { maxAge: "7d" }));
 
-  // Cabeceras de seguridad y CORS
+  // Cabeceras de seguridad y CORS (permitiendo Swagger UI)
   app.use(
     helmet({
       crossOriginResourcePolicy: { policy: "cross-origin" },
+      contentSecurityPolicy: false,
     })
   );
   const origenesPermitidos = [
@@ -53,6 +56,14 @@ export function createApp(): Express {
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
   app.use(cookieParser());
+
+  // Documentación Interactiva Swagger / OpenAPI 3.0
+  app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec, swaggerUiOptions));
+  app.get("/api/docs.json", (_req, res) => {
+    res.setHeader("Content-Type", "application/json");
+    res.json(swaggerSpec);
+  });
+  app.get("/docs", (_req, res) => res.redirect("/api/docs"));
 
   // Rutas principales con prefijo
   app.use(env.API_PREFIX, apiRouter);

@@ -23,3 +23,23 @@ export function autenticar(req: Request, _res: Response, next: NextFunction): vo
 
   next();
 }
+
+/**
+ * Middleware para identificar al usuario si viene con token Bearer válido,
+ * pero permite continuar como invitado si no cuenta con token.
+ */
+export function autenticarOpcional(req: Request, _res: Response, next: NextFunction): void {
+  const authHeader = req.headers.authorization;
+
+  if (authHeader && authHeader.startsWith("Bearer ")) {
+    try {
+      const token = authHeader.substring(7).trim();
+      const usuario = verificarAccessToken(token);
+      req.usuario = usuario;
+    } catch {
+      // Token expirado o inválido: continuar como invitado
+    }
+  }
+
+  next();
+}
