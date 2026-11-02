@@ -44,14 +44,14 @@ catalogoRouter.get(
 catalogoRouter.get("/productos/:idOrSlug", catalogoController.obtenerProductoPorIdOrSlug);
 
 /* =========================================================================
-   RUTAS ADMINISTRATIVAS (Operadores y Administradores)
+   RUTAS ADMINISTRATIVAS (Exclusivo Administrador según RF-01)
    ========================================================================= */
 
 // Categorías
 catalogoRouter.post(
   "/categorias",
   autenticar,
-  autorizarRoles("Administrador", "Operador"),
+  autorizarRoles("Administrador"),
   validar(CrearCategoriaSchema, "body"),
   catalogoController.crearCategoria
 );
@@ -59,7 +59,7 @@ catalogoRouter.post(
 catalogoRouter.put(
   "/categorias/:id",
   autenticar,
-  autorizarRoles("Administrador", "Operador"),
+  autorizarRoles("Administrador"),
   validar(ActualizarCategoriaSchema, "body"),
   catalogoController.actualizarCategoria
 );
@@ -67,7 +67,7 @@ catalogoRouter.put(
 catalogoRouter.patch(
   "/categorias/:id/estado",
   autenticar,
-  autorizarRoles("Administrador", "Operador"),
+  autorizarRoles("Administrador"),
   validar(CambiarEstadoCategoriaSchema, "body"),
   catalogoController.cambiarEstadoCategoria
 );
@@ -76,7 +76,7 @@ catalogoRouter.patch(
 catalogoRouter.post(
   "/atributos",
   autenticar,
-  autorizarRoles("Administrador", "Operador"),
+  autorizarRoles("Administrador"),
   validar(CrearAtributoSchema, "body"),
   catalogoController.crearAtributo
 );
@@ -84,7 +84,7 @@ catalogoRouter.post(
 catalogoRouter.post(
   "/atributos/:id/valores",
   autenticar,
-  autorizarRoles("Administrador", "Operador"),
+  autorizarRoles("Administrador"),
   validar(CrearValorAtributoSchema, "body"),
   catalogoController.crearValorAtributo
 );
@@ -93,7 +93,7 @@ catalogoRouter.post(
 catalogoRouter.post(
   "/productos",
   autenticar,
-  autorizarRoles("Administrador", "Operador"),
+  autorizarRoles("Administrador"),
   validar(CrearProductoSchema, "body"),
   catalogoController.crearProducto
 );
@@ -101,7 +101,7 @@ catalogoRouter.post(
 catalogoRouter.put(
   "/productos/:id",
   autenticar,
-  autorizarRoles("Administrador", "Operador"),
+  autorizarRoles("Administrador"),
   validar(ActualizarProductoSchema, "body"),
   catalogoController.actualizarProducto
 );
@@ -109,7 +109,7 @@ catalogoRouter.put(
 catalogoRouter.patch(
   "/productos/:id/estado",
   autenticar,
-  autorizarRoles("Administrador", "Operador"),
+  autorizarRoles("Administrador"),
   validar(CambiarEstadoProductoSchema, "body"),
   catalogoController.cambiarEstadoProducto
 );
@@ -118,7 +118,7 @@ catalogoRouter.patch(
 catalogoRouter.patch(
   "/variantes/:id",
   autenticar,
-  autorizarRoles("Administrador", "Operador"),
+  autorizarRoles("Administrador"),
   validar(ActualizarVarianteSchema, "body"),
   catalogoController.actualizarVariante
 );
@@ -127,7 +127,7 @@ catalogoRouter.patch(
 catalogoRouter.post(
   "/imagenes/subir",
   autenticar,
-  autorizarRoles("Administrador", "Operador"),
+  autorizarRoles("Administrador"),
   uploadImagenProducto.single("imagen"),
   optimizarYGuardarImagen,
   (req, res) => {

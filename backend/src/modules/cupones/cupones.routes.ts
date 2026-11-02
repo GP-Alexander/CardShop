@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { CuponesController } from "./cupones.controller";
 import { autenticar } from "../../shared/middlewares/autenticar";
-import { autorizarPermiso } from "../../shared/middlewares/autorizar";
+import { autorizarRoles } from "../../shared/middlewares/autorizar";
 import { validar } from "../../shared/middlewares/validar";
 import { ListarCuponesQuerySchema, CrearCuponSchema } from "@shopcart/contracts";
 
@@ -10,18 +10,18 @@ const controller = new CuponesController();
 
 router.use(autenticar);
 
-// 1. Listar cupones (Administración)
+// 1. Listar cupones (Exclusivo Administrador según RF-01)
 router.get(
   "/",
-  autorizarPermiso("coupons.read"),
+  autorizarRoles("Administrador"),
   validar(ListarCuponesQuerySchema, "query"),
   controller.listar
 );
 
-// 2. Crear cupón (Administración)
+// 2. Crear cupón (Exclusivo Administrador según RF-01)
 router.post(
   "/",
-  autorizarPermiso("coupons.manage"),
+  autorizarRoles("Administrador"),
   validar(CrearCuponSchema, "body"),
   controller.crear
 );
