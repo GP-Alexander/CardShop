@@ -1,7 +1,6 @@
-# ShopCart — Plataforma B2C E-Commerce (Fase 1: Base de Datos & Backend API)
+# ShopCart — E-Commerce Platform (Fase 1: Base de Datos & API REST)
 
-> **Tech Challenge 360 — Grupo Pentandra**  
-> Entrega oficial de **Fase 1**: Arquitectura relacional en **SQL Server 2022**, acceso a datos **100% mediante Stored Procedures** (cero ORM, cero SQL en código backend), API RESTful con **Node.js 24 LTS (TypeScript en modo estricto)**, contratos fuertemente tipados con Zod, documentación interactiva **OpenAPI 3.0 / Swagger UI** y suite de 112 pruebas de integración automatizadas.
+> Plataforma transaccional B2C de alto rendimiento construida sobre **SQL Server 2022**, acceso a datos **100% mediante Procedimientos Almacenados** (cero ORM, cero SQL en backend), API RESTful en **Node.js 24 LTS (TypeScript en modo estricto)**, contratos fuertemente tipados con Zod, documentación interactiva **OpenAPI 3.0 (Swagger UI)** y suite de 115 pruebas de integración automatizadas.
 
 ---
 
@@ -82,12 +81,18 @@ Copy-Item .env.example .env
 cp .env.example .env
 ```
 
-### Paso 3: Levantar el Contenedor de SQL Server 2022
-El archivo `docker-compose.yml` en la raíz contiene la definición oficial de SQL Server 2022:
-```bash
-docker compose up -d sqlserver
-```
-> *Espere unos 10-15 segundos mientras SQL Server inicializa los servicios.*
+### Paso 3: Disponer de SQL Server (Docker o Instalación Local)
+Tiene dos alternativas según su entorno de desarrollo:
+
+- **Opción A (Con Docker Desktop - Recomendado si no tiene SQL Server):**  
+  El archivo `docker-compose.yml` en la raíz contiene la definición oficial de SQL Server 2022 lista para desarrollo:
+  ```bash
+  docker compose up -d sqlserver
+  ```
+  > *Espere unos 10-15 segundos mientras el contenedor inicializa los servicios de SQL Server.*
+
+- **Opción B (Instalación nativa de SQL Server / SQL Server Express):**  
+  No requiere Docker. Solo asegúrese de que el servicio de SQL Server esté en ejecución (con autenticación mixta habilitada en el puerto 1433) y configure sus credenciales locales en el archivo `.env` (`DB_HOST`, `DB_PORT`, `DB_USER`, `SA_PASSWORD`).
 
 ### Paso 4: Instalar Dependencias del Monorepo
 Instale las dependencias de todos los workspaces (`database`, `packages/contracts`, `backend`):
@@ -96,7 +101,7 @@ npm install
 ```
 
 ### Paso 5: Compilar Contratos y Aplicar Migraciones de Base de Datos
-Este comando compilará los esquemas Zod en `packages/contracts`, creará la base de datos `ShopCart`, aplicará las migraciones de tablas (`0001` a `0005`), compilará las vistas y Stored Procedures (`0200` a `0209`) y cargará las semillas demo (`9001` y `9002`):
+Este comando compilará los esquemas Zod en `packages/contracts`, creará la base de datos `ShopCart`, aplicará las migraciones de tablas (`0001` a `0006`), compilará las vistas y Stored Procedures (`0200` a `0210`) y cargará las semillas demo (`9001` y `9002`):
 ```bash
 npm run build:contracts
 npm run db:migrate
@@ -126,7 +131,7 @@ El backend expone la interfaz interactiva de Swagger para que el evaluador pueda
 
 ## 6. Ejecución de Pruebas Automatizadas
 
-El backend incluye una suite de pruebas de integración con **112 pruebas automatizadas** que interactúan directamente con la base de datos SQL Server y verifican casos borde, concurrencia, idempotencia, transiciones inválidas y control de acceso:
+El backend incluye una suite de pruebas de integración con **115 pruebas automatizadas** que interactúan directamente con la base de datos SQL Server y verifican casos borde, concurrencia, idempotencia, transiciones inválidas y control de acceso:
 
 Para ejecutar todas las pruebas:
 ```bash
@@ -144,6 +149,7 @@ Resumen de suites de pruebas integradas:
 - `checkout_pedidos.test.ts` (14 pruebas): Reservas temporales (15 min), checkout atómico, pagos idempotentes y devoluciones.
 - `reportes.test.ts` (11 pruebas): Métricas del dashboard, ventas agrupadas (día/semana/mes), exclusión de cancelados y deducción de reembolsos.
 - `bitacora_catalogos.test.ts` (8 pruebas): Consulta de bitácora inmutable y catálogos del sistema.
+- `swagger.test.ts` (3 pruebas): Verificación de disponibilidad de la especificación OpenAPI JSON y renderizado de Swagger UI.
 
 ---
 
