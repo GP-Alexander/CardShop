@@ -1,213 +1,184 @@
-# ShopCart — E-Commerce Platform (Fase 1: Base de Datos & API REST)
+# ShopCart — API & Base de Datos
 
-> Plataforma transaccional B2C de alto rendimiento construida sobre **SQL Server 2022**, acceso a datos **100% mediante Procedimientos Almacenados** (cero ORM, cero SQL en backend), API RESTful en **Node.js 24 LTS (TypeScript en modo estricto)**, contratos fuertemente tipados con Zod, documentación interactiva **OpenAPI 3.0 (Swagger UI)** y suite de 115 pruebas de integración automatizadas.
+Backend y base de datos relacional para la plataforma de comercio electrónico ShopCart. El sistema implementa la gestión de catálogo de productos, control de inventario con Kardex, carrito de compras, cupones de descuento, checkout transaccional con reservas temporales y administración de pedidos por estados.
 
 ---
 
-## 1. Tabla de Contenidos
-- [1. Tabla de Contenidos](#1-tabla-de-contenidos)
-- [2. Aspectos Destacados y Reglas de Evaluación](#2-aspectos-destacados-y-reglas-de-evaluación)
+## 1. Contenido
+- [1. Contenido](#1-contenido)
+- [2. Consideraciones Técnicas](#2-consideraciones-técnicas)
 - [3. Stack Tecnológico](#3-stack-tecnológico)
-- [4. Credenciales de Demostración](#4-credenciales-de-demostración)
-- [5. Guía de Inicio Rápido (Portabilidad en Máquina Limpia)](#5-guía-de-inicio-rápido-portabilidad-en-máquina-limpia)
-- [6. Ejecución de Pruebas Automatizadas](#6-ejecución-de-pruebas-automatizadas)
-- [7. Decisiones Técnicas y Arquitectura](#7-decisiones-técnicas-y-arquitectura)
-- [8. Diagrama de Ciclo de Vida del Pedido (RF-07)](#8-diagrama-de-ciclo-de-vida-del-pedido-rf-07)
-- [9. Diagrama Entidad-Relación (DER)](#9-diagrama-entidad-relación-der)
-- [10. Catálogo Completo de la API REST](#10-catálogo-completo-de-la-api-rest)
+- [4. Credenciales de Prueba](#4-credenciales-de-prueba)
+- [5. Instalación y Puesta en Marcha](#5-instalación-y-puesta-en-marcha)
+- [6. Pruebas Automatizadas](#6-pruebas-automatizadas)
+- [7. Arquitectura y Decisiones de Diseño](#7-arquitectura-y-decisiones-de-diseño)
+- [8. Ciclo de Vida del Pedido](#8-ciclo-de-vida-del-pedido)
+- [9. Diagrama Entidad-Relación](#9-diagrama-entidad-relación)
+- [10. Endpoints de la API](#10-endpoints-de-la-api)
 
 ---
 
-## 2. Aspectos Destacados y Reglas de Evaluación
+## 2. Consideraciones Técnicas
 
-El sistema fue diseñado y construido para cumplir estrictamente con los criterios de evaluación oficial y evitar causales de penalización directa:
-
-- **Cero ORM y Cero SQL en el Backend:** Todo el acceso a datos (lectura, inserción, actualización) se realiza **exclusivamente mediante Stored Procedures** (`dbo.SP_*`) con parámetros tipados vía el driver oficial `mssql`. No se utiliza Prisma, TypeORM, Sequelize ni consultas SQL en crudo.
-- **Prevención Absoluta de SQL Injection:** Parámetros fuertemente tipados (`input` y `output`). Si un SP requiere SQL dinámico, utiliza `sp_executesql` con parámetros tipados.
-- **Protección contra IDOR (Insecure Direct Object References):** Un cliente jamás puede consultar o modificar carritos, pedidos o direcciones de otro cliente. Las validaciones de propiedad se realizan a nivel de backend y en las restricciones relacionales de SQL Server (claves foráneas compuestas).
-- **Rate Limiting y Protección Anti-Fuerza Bruta (Página 14 del Pliego - Extra Opcional):** Middleware de ventana deslizante en memoria en los endpoints de autenticación (`/auth/login` y `/auth/registro`). Limita a 5 intentos fallidos cada 15 minutos en login y 5 cuentas por hora en registro. Al exceder el umbral, responde de inmediato con HTTP `429 Too Many Requests`, cabeceras `Retry-After` y `X-RateLimit-*`, interrumpiendo la petición antes de invocar el cálculo intensivo de Argon2id o la base de datos para prevenir agotamiento de CPU (DoS).
-- **Concurrencia y Control de Sobreventa:** Reservas temporales de inventario por 15 minutos en checkout atómico, respaldadas por restricciones `CHECK (CantidadReservada <= Existencia)` en el motor de base de datos.
-- **Idempotencia Transaccional:** Registro de claves de idempotencia únicas en pedidos y pagos para evitar cobros o pedidos duplicados ante doble clic o reintentos de red.
-- **Inmutabilidad Garantizada por Triggers:** La bitácora (`RegistroBitacora`), el Kardex (`MovimientoInventario`) y el historial de estados (`HistorialEstadoPedido`) cuentan con triggers `INSTEAD OF UPDATE, DELETE` que impiden su modificación o eliminación física.
-- **Moneda e Impuestos:** Todos los montos se manejan en **Quetzales (GTQ)** con tipos `DECIMAL(12,2)` o `DECIMAL(14,2)` (prohibido `FLOAT`/`REAL`). Los precios de catálogo y pedidos incluyen **IVA del 12%**.
+- **Acceso a datos por Procedimientos Almacenados:** Toda la persistencia y lectura de datos se realiza a través de Stored Procedures (`dbo.SP_*`) con parámetros tipados mediante el driver oficial `mssql`. No se utilizan ORMs ni consultas SQL dinámicas en el código backend.
+- **Prevención de inyección SQL:** Todos los parámetros se envían tipados. En los casos donde se requiere armado dinámico de consultas (búsquedas con filtros combinados), se utiliza `sp_executesql` con definición estricta de parámetros.
+- **Control de acceso y aislamiento entre clientes (IDOR):** Las rutas de pedidos, direcciones y carrito validan la pertenencia del recurso usando el `idUsuario` del token JWT verificado, impidiendo que un cliente acceda a información de otros usuarios.
+- **Control de concurrencia e inventario:** Durante el checkout se genera una reserva temporal por 15 minutos en `dbo.ReservaInventario`. La tabla `dbo.Inventario` previene sobreventas mediante la restricción `CHECK (CantidadReservada <= Existencia)` y bloqueos `UPDLOCK, ROWLOCK` en el procedimiento almacenado. Las reservas vencidas se liberan automáticamente mediante `SP_Reservas_LiberarExpiradas`.
+- **Idempotencia en pagos:** El registro de pagos utiliza la restricción única `UQ_Pago_Idempotencia (ClaveIdempotencia)`. Si se reenvía una misma solicitud por fallas de red o doble clic, el sistema devuelve la respuesta del intento previo sin procesar un nuevo cobro ni duplicar el pedido.
+- **Inmutabilidad de registros:** Las tablas `dbo.RegistroBitacora`, `dbo.MovimientoInventario` (Kardex) y `dbo.HistorialEstadoPedido` cuentan con triggers `INSTEAD OF UPDATE, DELETE` que impiden su modificación o borrado.
+- **Moneda e impuestos:** Los valores monetarios se gestionan en Quetzales (GTQ) con tipo `DECIMAL` (sin uso de `FLOAT` ni `REAL`). Los precios de venta tienen el 12% de IVA incluido.
+- **Protección contra fuerza bruta:** Middleware de ventana deslizante en memoria que limita los intentos fallidos de autenticación (5 intentos por 15 minutos en login y 5 registros por hora por IP), respondiendo con HTTP `429 Too Many Requests` y cabecera `Retry-After`.
 
 ---
 
 ## 3. Stack Tecnológico
 
-| Capa | Tecnología | Justificación |
+| Componente | Tecnología | Detalle |
 |---|---|---|
-| **Base de Datos** | Microsoft SQL Server 2022 | Motor relacional ACID de nivel empresarial con soporte de procedimientos almacenados, triggers inmutables e índices filtrados. |
-| **Backend Runtime** | Node.js 24 LTS | Versión LTS más reciente, motor V8 optimizado y APIs nativas modernas. |
-| **Lenguaje Backend** | TypeScript 5.8+ (`"strict": true`) | Tipado estático estricto, eliminación de errores en tiempo de compilación. |
-| **Framework HTTP** | Express 4.21+ | Servidor REST ligero, desacoplado y estructurado mediante arquitectura por capas. |
-| **Contratos y DTOs** | Zod 3.24+ (`packages/contracts`) | Validación bidireccional de esquemas en tiempo de ejecución compartida entre capas. |
-| **Criptografía** | Argon2id (`argon2`) | Algoritmo de hash de contraseñas recomendado por OWASP y estándar RFC 9106. |
-| **Tokens y Sesiones** | JWT (`jsonwebtoken`) + Rotación | Access Token (15 min) y Refresh Token persistido con rotación y detección de reuso por familias criptográficas. |
-| **Pruebas** | Vitest 3.0+ & Supertest 7.0+ | Suite de pruebas de integración con cobertura completa de endpoints y base de datos real. |
-| **Monorepo** | npm Workspaces | Estructura modular: `database`, `packages/contracts` y `backend`. |
+| **Base de Datos** | Microsoft SQL Server 2022 | Procedimientos almacenados, triggers, restricciones y tipos `DECIMAL`. |
+| **Entorno** | Node.js 24 LTS | Runtime de ejecución backend. |
+| **Lenguaje** | TypeScript 5.8+ | Configurado en modo estricto (`"strict": true`). |
+| **Framework HTTP** | Express 4.21+ | API RESTful estructurada en capas (`routes`, `controller`, `service`, `dal`). |
+| **Contratos y Validación** | Zod 3.24+ | Esquemas compartidos en `packages/contracts` para validar entradas y tipar DTOs. |
+| **Hashing de Contraseñas** | Argon2id | Algoritmo de derivación de claves según recomendaciones OWASP. |
+| **Autenticación** | JWT | Access Token de corta duración (15 min) y Refresh Token con rotación persistida en base de datos. |
+| **Pruebas** | Vitest & Supertest | Suite de pruebas de integración contra base de datos real. |
+| **Monorepo** | npm Workspaces | Estructura modular dividida en `database`, `packages/contracts` y `backend`. |
 
 ---
 
-## 4. Credenciales de Demostración
+## 4. Credenciales de Prueba
 
-La base de datos incluye datos semilla reproducibles (`database/seeds/9002_usuarios_demo.sql`) con contraseñas hasheadas en Argon2id:
+Los datos semilla (`database/seeds/9002_usuarios_demo.sql`) proveen tres cuentas de prueba con contraseñas generadas con Argon2id:
 
-| Rol | Correo Electrónico | Contraseña | Permisos y Alcance |
+| Rol | Correo | Contraseña | Alcance |
 |---|---|---|---|
-| **Administrador** | `admin@shopcart.com` | `Admin1234!` | Acceso total: catálogo, precios, cupones, usuarios, auditoría y reportes ejecutivos. |
-| **Operador** | `operador@shopcart.com` | `Operador1234!` | Gestión de pedidos (preparar, despachar), control de inventario y registro de kardex. |
-| **Cliente** | `cliente@shopcart.com` | `Cliente1234!` | Carrito propio, compras, confirmación de pagos, pedidos propios y direcciones. |
+| **Administrador** | `admin@shopcart.com` | `Admin1234!` | Acceso completo: catálogo, precios, cupones, usuarios, bitácora y reportes. |
+| **Operador** | `operador@shopcart.com` | `Operador1234!` | Gestión de pedidos (preparar, despachar) y movimientos de inventario/kardex. |
+| **Cliente** | `cliente@shopcart.com` | `Cliente1234!` | Carrito de compras, checkout, historial de pedidos propios y direcciones. |
 
 ---
 
-## 5. Guía de Inicio Rápido (Portabilidad en Máquina Limpia)
+## 5. Instalación y Puesta en Marcha
 
-El evaluador puede levantar el entorno completo en cualquier máquina con **Docker Desktop** y **Node.js 24 LTS** siguiendo estos pasos:
+### Requisitos previos
+- Node.js 24 LTS o superior y npm.
+- Instancia de SQL Server 2019 o 2022 (local o mediante Docker).
 
-### Paso 1: Clonar el Repositorio
+### Paso 1: Clonar el repositorio
 ```bash
 git clone <URL_DEL_REPOSITORIO> shopcart
 cd shopcart
 ```
 
-### Paso 2: Configurar Variables de Entorno
-El repositorio incluye un archivo `.env.example` preconfigurado con valores listos para desarrollo local:
+### Paso 2: Variables de entorno
+Copiar el archivo de ejemplo:
 ```bash
-# En Windows (PowerShell):
+# PowerShell
 Copy-Item .env.example .env
 
-# En Linux/macOS:
+# Bash
 cp .env.example .env
 ```
+Si se utiliza una instancia local de SQL Server, ajustar los valores de conexión (`DB_HOST`, `DB_PORT`, `DB_USER`, `SA_PASSWORD`) según corresponda.
 
-### Paso 3: Disponer de SQL Server (Docker o Instalación Local)
-Tiene dos alternativas según su entorno de desarrollo:
+### Paso 3: Inicializar la base de datos
+Si se utiliza Docker:
+```bash
+docker compose up -d sqlserver
+```
+*(Esperar unos segundos a que el contenedor complete su inicialización).*
 
-- **Opción A (Con Docker Desktop - Recomendado si no tiene SQL Server):**  
-  El archivo `docker-compose.yml` en la raíz contiene la definición oficial de SQL Server 2022 lista para desarrollo:
-  ```bash
-  docker compose up -d sqlserver
-  ```
-  > *Espere unos 10-15 segundos mientras el contenedor inicializa los servicios de SQL Server.*
+Si se utiliza una instalación local de SQL Server, verificar que el servicio esté activo y con autenticación mixta habilitada en el puerto 1433.
 
-- **Opción B (Instalación nativa de SQL Server / SQL Server Express):**  
-  No requiere Docker. Solo asegúrese de que el servicio de SQL Server esté en ejecución (con autenticación mixta habilitada en el puerto 1433) y configure sus credenciales locales en el archivo `.env` (`DB_HOST`, `DB_PORT`, `DB_USER`, `SA_PASSWORD`).
-
-### Paso 4: Instalar Dependencias del Monorepo
-Instale las dependencias de todos los workspaces (`database`, `packages/contracts`, `backend`):
+### Paso 4: Instalar dependencias
 ```bash
 npm install
 ```
 
-### Paso 5: Compilar Contratos y Aplicar Migraciones de Base de Datos
-Este comando compilará los esquemas Zod en `packages/contracts`, creará la base de datos `ShopCart`, aplicará las migraciones de tablas (`0001` a `0006`), compilará las vistas y Stored Procedures (`0200` a `0210`) y cargará las semillas demo (`9001` y `9002`):
+### Paso 5: Compilar contratos y ejecutar migraciones
 ```bash
 npm run build:contracts
 npm run db:migrate
+npm run db:seed
 ```
+Este proceso compila los contratos Zod, crea la estructura de la base de datos, compila los procedimientos almacenados y carga los datos de prueba.
 
-### Paso 6: Iniciar el Servidor Backend
-Inicie el servidor de desarrollo en caliente:
+### Paso 6: Iniciar el servidor backend
 ```bash
 npm run dev:backend
 ```
-El servidor estará escuchando en `http://localhost:3000/api/v1`.  
-Puede verificar la salud del servicio ingresando a:  
-**`GET http://localhost:3000/api/v1/health`**
+El servicio estará disponible en `http://localhost:3000/api/v1`.
 
-#### Documentación Interactiva Swagger UI (OpenAPI 3.0):
-El backend expone la interfaz interactiva de Swagger para que el evaluador pueda explorar y probar todos los endpoints directamente desde el navegador con soporte de autenticación Bearer JWT:
-- **Swagger UI:** [`http://localhost:3000/api/docs`](http://localhost:3000/api/docs)
-- **Especificación OpenAPI (JSON):** [`http://localhost:3000/api/docs.json`](http://localhost:3000/api/docs.json)
+- Verificación de estado: `GET http://localhost:3000/api/v1/health`
+- Documentación Swagger UI: `http://localhost:3000/api/docs`
+- Especificación OpenAPI JSON: `http://localhost:3000/api/docs.json`
 
-> **Tip para el Evaluador:**  
-> En Swagger UI, ejecute **`POST /auth/login`** con las credenciales demo (`admin@shopcart.com` / `Admin1234!`), copie el `accessToken` resultante y use el botón verde **Authorize** arriba a la derecha para habilitar las pruebas de todos los endpoints protegidos.
-
-> **Alcance de la Fase 1:**  
-> Esta entrega corresponde exclusivamente al **Backend & Base de Datos** (Fase 1). Toda la interacción, prueba de flujos y verificación de requerimientos funcionales (RF-01 a RF-09) se realiza a través de la interfaz interactiva de **Swagger UI** y la suite de pruebas de integración automatizadas.
+> **Pruebas en Swagger UI:**  
+> Para probar endpoints protegidos desde Swagger, ejecutar `POST /auth/login` con la cuenta de administrador, copiar el `accessToken` de la respuesta e ingresarlo en el botón **Authorize** de la parte superior derecha.
 
 ---
 
-## 6. Ejecución de Pruebas Automatizadas
+## 6. Pruebas Automatizadas
 
-El backend incluye una suite de pruebas de integración con **115 pruebas automatizadas** que interactúan directamente con la base de datos SQL Server y verifican casos borde, concurrencia, idempotencia, transiciones inválidas y control de acceso:
+El backend incluye una suite de pruebas de integración con 115 casos que interactúan directamente con la base de datos para verificar reglas de negocio, concurrencia, transiciones de estado, idempotencia y permisos:
 
-Para ejecutar todas las pruebas:
 ```bash
 npm --workspace=backend run test:all
 ```
 
-Resumen de suites de pruebas integradas:
-- `auth.test.ts` (9 pruebas): Registro, login, hash Argon2id, renovación de token por rotación y detección de reuso.
-- `auth_ratelimit.test.ts` (2 pruebas): Protección anti-fuerza bruta en login (HTTP 401 decrementa intentos restantes, HTTP 429 bloquea al 6º intento con Retry-After sin tocar la base de datos).
-- `usuarios.test.ts` (15 pruebas): CRUD de usuarios, asignación de roles, desactivación lógica y permisos RBAC.
-- `direcciones.test.ts` (13 pruebas): Gestión de direcciones, predeterminadas e integridad referencial por cliente.
-- `catalogo.test.ts` (17 pruebas): Jerarquía de categorías, productos, variantes con SKU, precios y búsqueda textual.
-- `inventario.test.ts` (12 pruebas): Existencias, alertas de stock, entradas/salidas y cálculo estricto del Kardex inmutable.
-- `carrito_cupones.test.ts` (11 pruebas): Carrito persistente (invitados/clientes), aplicación de cupones y límites de uso.
-- `checkout_pedidos.test.ts` (14 pruebas): Reservas temporales (15 min), checkout atómico, pagos idempotentes y devoluciones.
-- `reportes.test.ts` (11 pruebas): Métricas del dashboard, ventas agrupadas (día/semana/mes), exclusión de cancelados y deducción de reembolsos.
-- `bitacora_catalogos.test.ts` (8 pruebas): Consulta de bitácora inmutable y catálogos del sistema.
-- `swagger.test.ts` (3 pruebas): Verificación de disponibilidad de la especificación OpenAPI JSON y renderizado de Swagger UI.
+Suites incluidas:
+- `auth.test.ts` (9 pruebas): Registro, inicio de sesión, hash Argon2id, rotación y revocación de tokens.
+- `auth_ratelimit.test.ts` (2 pruebas): Bloqueo tras intentos fallidos consecutivos (HTTP 429).
+- `usuarios.test.ts` (15 pruebas): Gestión de usuarios, roles y desactivación lógica.
+- `direcciones.test.ts` (13 pruebas): CRUD de direcciones y aislamiento por cliente.
+- `catalogo.test.ts` (17 pruebas): Categorías, productos, variantes con SKU, precios y búsquedas.
+- `inventario.test.ts` (12 pruebas): Entradas, ajustes con motivo y validación de Kardex.
+- `carrito_cupones.test.ts` (11 pruebas): Operaciones de carrito, cupones y límites de uso.
+- `checkout_pedidos.test.ts` (14 pruebas): Reservas de stock, checkout transaccional y devoluciones.
+- `reportes.test.ts` (11 pruebas): Métricas de ventas, exclusión de pedidos cancelados y deducción de reembolsos.
+- `bitacora_catalogos.test.ts` (8 pruebas): Consulta de bitácora y catálogos de roles/permisos.
+- `swagger.test.ts` (3 pruebas): Disponibilidad de documentación OpenAPI y Swagger UI.
 
 ---
 
-## 7. Decisiones Técnicas y Arquitectura
+## 7. Arquitectura y Decisiones de Diseño
 
-### 7.1. Arquitectura por Capas Estrictas
-Cada módulo del backend (`backend/src/modules/<modulo>/`) implementa una separación unidireccional de responsabilidades:
-1. **`routes`:** Define rutas Express, asigna middlewares de autenticación (`autenticar`), autorización RBAC (`autorizarPermiso`) y validación de esquemas Zod (`validar`).
-2. **`controller`:** Recibe la petición HTTP, invoca al servicio y formatea la respuesta JSON estándar.
-3. **`service`:** Orquesta la lógica de negocio, reglas de dominio y coordinación entre entidades.
-4. **`dal` (Data Access Layer):** Invoca exclusivamente los Stored Procedures mediante el helper `ejecutarSp` con parámetros fuertemente tipados. **Cero SQL en código TypeScript.**
+### Capas del backend
+Cada módulo (`backend/src/modules/<modulo>/`) implementa un flujo unidireccional:
+1. **`routes`:** Registro de rutas Express con validación de esquemas Zod (`validar`) y middlewares de autenticación (`autenticar`) y autorización (`autorizarRoles` / `autorizarPermiso`).
+2. **`controller`:** Manejo de la solicitud HTTP y formateo de la respuesta JSON estándar.
+3. **`service`:** Lógica de negocio y reglas de dominio.
+4. **`dal` (Data Access Layer):** Invocación de Stored Procedures a través del helper `ejecutarSp` con parámetros tipados. No contiene sentencias SQL manuales.
 
-### 7.2. Estrategia de Acceso a Datos y Stored Procedures
-- Todas las operaciones en la base de datos están encapsuladas en Stored Procedures (`SP_Modulo_Proceso`).
-- Las vistas (`VW_Modulo_Proceso`) se utilizan para agregaciones y dashboards consolidados.
-- La función de ejecución centralizada (`ejecutarSp.ts`) mapea códigos de error SQL estándar `THROW 50xxx` a excepciones HTTP estructuradas (`ConflictError`, `NotFoundError`, `UnauthorizedError`, `BadRequestError`).
-
-### 7.3. Manejo de Concurrencia y Alta Demanda
-- **Checkout Atómico:** Al iniciar checkout, se crea una reserva temporal de existencias en `dbo.ReservaInventario` por 15 minutos (`FechaExpiracion = DATEADD(MINUTE, 15, SYSUTCDATETIME())`).
-- **Prevención de Sobreventa:** La tabla `dbo.Inventario` cuenta con la restricción `CHECK (CantidadReservada <= Existencia)`. A nivel de SP, la reserva se ejecuta con bloqueos de actualización (`UPDLOCK, ROWLOCK`), asegurando que si dos clientes intentan comprar la última unidad en el mismo milisegundo, solo uno adquiere la reserva y el otro recibe `409 Conflict`.
-- **Liberación de Reservas Vencidas:** Procedimiento `SP_Reservas_LiberarExpiradas` que libera reservas vencidas reintegrando la disponibilidad de existencias sin intervención manual.
-
-### 7.4. Idempotencia en Pagos
-- La tabla `dbo.Pago` mantiene la restricción de unicidad `UQ_Pago_Idempotencia (ClaveIdempotencia)`.
-- Si un cliente presiona dos veces el botón de pago o se produce un reintento de red, la segunda petición detecta la clave de idempotencia existente y retorna la confirmación del intento previo sin duplicar el cobro ni el pedido.
-
-### 7.5. Rate Limiting y Protección Anti-Fuerza Bruta (Extra Opcional Pág. 14)
-- **Mitigación DoS por Hash Argon2id:** Argon2id es un algoritmo intencionalmente intensivo en memoria y CPU para neutralizar ataques con GPU/ASIC. Sin límite de peticiones, ráfagas de logins no autorizados podrían saturar el procesador del servidor.
-- **Ventana Deslizante en Memoria:** Middleware sin dependencias externas pesadas que rastrea intentos por IP:
-  - `rateLimitLogin`: Máximo 5 intentos fallidos en una ventana de 15 minutos.
-  - `rateLimitRegistro`: Máximo 5 cuentas creadas por hora por IP.
-- **Respuesta Estándar RFC:** Al superar el límite, responde inmediatamente con código HTTP `429 Too Many Requests`, cabeceras `Retry-After: <segundos>` y `X-RateLimit-*`, alertando al cliente o consumidor de la API con el tiempo de espera requerido antes de permitir un nuevo intento y bloqueando el consumo innecesario de recursos en el servidor.
+### Mapeo de errores
+Los errores generados en SQL Server mediante `THROW 50xxx` se capturan en la capa DAL y se traducen a excepciones HTTP estructuradas (`AppError`), produciendo respuestas JSON uniformes con su correspondiente código de estado (400, 401, 403, 404, 409).
 
 ---
 
-## 8. Diagrama de Ciclo de Vida del Pedido (RF-07)
+## 8. Ciclo de Vida del Pedido
 
-El ciclo de vida del pedido se rige por la tabla `dbo.TransicionEstadoPedido`, impidiendo cualquier transición no autorizada tanto a nivel de backend como mediante el trigger `dbo.TR_Pedido_ValidarTransicion`:
+El flujo de estados se controla mediante la tabla `dbo.TransicionEstadoPedido` y el trigger `dbo.TR_Pedido_ValidarTransicion`:
 
 ```mermaid
 stateDiagram-v2
     [*] --> PENDIENTE_PAGO: Checkout iniciado (Reserva 15 min)
     
-    PENDIENTE_PAGO --> PAGADO: Pago confirmado (Reconocimiento venta)
-    PENDIENTE_PAGO --> CANCELADO: Reserva expirada o cancelación cliente
+    PENDIENTE_PAGO --> PAGADO: Pago confirmado
+    PENDIENTE_PAGO --> CANCELADO: Reserva expirada o cancelada
     
     PAGADO --> PREPARANDO: Operador inicia preparación
-    PAGADO --> CANCELADO: Cancelación antes de despacho (Reintegra kardex)
+    PAGADO --> CANCELADO: Cancelación previa al despacho
     
     PREPARANDO --> DESPACHADO: Operador despacha pedido
-    PREPARANDO --> CANCELADO: Cancelación en preparación (Reintegra kardex)
+    PREPARANDO --> CANCELADO: Cancelación en preparación
     
-    DESPACHADO --> ENTREGADO: Entrega confirmada al cliente
+    DESPACHADO --> ENTREGADO: Entrega confirmada
     
-    ENTREGADO --> DEVOLUCION_PARCIAL: Solicitud y aprobación de devolución parcial
+    ENTREGADO --> DEVOLUCION_PARCIAL: Devolución parcial de líneas
     ENTREGADO --> DEVOLUCION_TOTAL: Devolución total del pedido
     
-    DEVOLUCION_PARCIAL --> DEVOLUCION_TOTAL: Devolución del resto de líneas
+    DEVOLUCION_PARCIAL --> DEVOLUCION_TOTAL: Devolución de líneas restantes
     
     CANCELADO --> [*]
     DEVOLUCION_TOTAL --> [*]
@@ -215,9 +186,9 @@ stateDiagram-v2
 
 ---
 
-## 9. Diagrama Entidad-Relación (DER)
+## 9. Diagrama Entidad-Relación
 
-El modelo de datos normalizado (3FN) consta de 18 tablas diseñadas en SQL Server 2022:
+Modelo relacional en tercera forma normal (3FN) con 18 tablas:
 
 ```mermaid
 erDiagram
@@ -264,81 +235,112 @@ erDiagram
 
 ---
 
-## 10. Catálogo Completo de la API REST
+## 10. Endpoints de la API
 
-Todos los endpoints están bajo el prefijo `/api/v1`:
+Prefijo base: `/api/v1`
 
-### 10.1. Módulo de Autenticación (`/auth`)
-| Método | Endpoint | Roles | Descripción |
+### 10.1. Autenticación (`/auth`)
+| Método | Endpoint | Acceso | Descripción |
 |---|---|---|---|
 | `POST` | `/auth/registro` | Público | Registro de cliente con contraseña Argon2id. |
-| `POST` | `/auth/login` | Público | Autenticación de usuario; emite Access Token y Refresh Token (cookie HttpOnly). |
-| `POST` | `/auth/refresh` | Público | Renovación transparente de tokens con rotación estricta y detección de reuso. |
-| `POST` | `/auth/logout` | Autenticado | Cierre de sesión y revocación del refresh token. |
-| `GET` | `/auth/perfil` | Autenticado | Consulta del perfil del usuario autenticado. |
+| `POST` | `/auth/login` | Público | Autenticación de usuario; emite Access Token y Refresh Token. |
+| `POST` | `/auth/google` | Público | Autenticación mediante Google OAuth. |
+| `POST` | `/auth/refresh` | Público | Renovación de token con rotación y detección de reuso. |
+| `POST` | `/auth/logout` | Autenticado | Revocación del refresh token de la sesión activa. |
+| `GET` | `/auth/yo` | Autenticado | Información del usuario autenticado y sus permisos. |
 
-### 10.2. Módulo de Catálogo de Productos (`/catalogo`)
-| Método | Endpoint | Roles | Descripción |
+### 10.2. Catálogo de Productos (`/catalogo`)
+| Método | Endpoint | Acceso | Descripción |
 |---|---|---|---|
-| `GET` | `/catalogo/categorias` | Público | Listado jerárquico de categorías activas. |
-| `POST` | `/catalogo/categorias` | Admin | Creación de categoría (`catalog.manage`). |
-| `PUT` | `/catalogo/categorias/:id` | Admin | Modificación de categoría (`catalog.manage`). |
-| `GET` | `/catalogo/productos` | Público | Búsqueda y listado paginado con filtros por precio, categoría y stock. |
-| `GET` | `/catalogo/productos/:slug`| Público | Detalle de producto con todas sus variantes y atributos. |
-| `POST` | `/catalogo/productos` | Admin | Creación de producto con variantes atómicas (`catalog.manage`). |
-| `PUT` | `/catalogo/productos/:id` | Admin | Modificación de producto (`catalog.manage`). |
-| `DELETE` | `/catalogo/productos/:id` | Admin | Desactivación lógica de producto con ventas previas (`catalog.manage`). |
+| `GET` | `/catalogo/categorias` | Público | Listado de categorías activas. |
+| `POST` | `/catalogo/categorias` | Administrador | Creación de categoría. |
+| `PUT` | `/catalogo/categorias/:id` | Administrador | Modificación de categoría. |
+| `PATCH` | `/catalogo/categorias/:id/estado` | Administrador | Cambio de estado de categoría. |
+| `GET` | `/catalogo/atributos` | Público | Listado de atributos y valores. |
+| `POST` | `/catalogo/atributos` | Administrador | Creación de atributo. |
+| `POST` | `/catalogo/atributos/:id/valores` | Administrador | Creación de valor de atributo. |
+| `GET` | `/catalogo/productos` | Público | Búsqueda y listado con filtros por precio, categoría y stock. |
+| `GET` | `/catalogo/productos/:idOrSlug` | Público | Detalle de producto con variantes y atributos. |
+| `POST` | `/catalogo/productos` | Administrador | Creación de producto y variantes. |
+| `PUT` | `/catalogo/productos/:id` | Administrador | Modificación de producto. |
+| `PATCH` | `/catalogo/productos/:id/estado` | Administrador | Desactivación o activación de producto. |
+| `PATCH` | `/catalogo/variantes/:id` | Administrador | Actualización de precio o atributos de variante. |
+| `POST` | `/catalogo/imagenes/subir` | Administrador | Subida y optimización de imágenes en formato WebP. |
 
-### 10.3. Módulo de Inventario y Kardex (`/inventario`)
-| Método | Endpoint | Roles | Descripción |
+### 10.3. Inventario y Kardex (`/inventario`)
+| Método | Endpoint | Acceso | Descripción |
 |---|---|---|---|
-| `GET` | `/inventario` | Operador / Admin | Existencias consolidadas por almacén con alerta de punto de reorden. |
-| `POST` | `/inventario/entrada` | Operador / Admin | Entrada física por compra con generación automática de Kardex. |
-| `POST` | `/inventario/ajuste` | Operador / Admin | Ajuste de inventario con motivo obligatorio. |
-| `GET` | `/inventario/kardex` | Operador / Admin | Historial inmutable de movimientos del Kardex con paginación y filtros. |
+| `GET` | `/inventario` | Operador / Administrador | Existencias consolidadas por variante. |
+| `GET` | `/inventario/kardex` | Operador / Administrador | Historial de movimientos de inventario con filtros. |
+| `GET` | `/inventario/variante/:idVariante` | Operador / Administrador | Detalle de existencias de una variante. |
+| `POST` | `/inventario/entrada` | Operador / Administrador | Registro de entrada de inventario por compra. |
+| `POST` | `/inventario/ajuste` | Operador / Administrador | Ajuste manual de stock con motivo obligatorio. |
+| `PUT` | `/inventario/punto-reorden` | Operador / Administrador | Configuración de umbral de reorden. |
 
-### 10.4. Módulo de Carrito de Compras (`/carrito`)
-| Método | Endpoint | Roles | Descripción |
+### 10.4. Carrito de Compras (`/carrito`)
+| Método | Endpoint | Acceso | Descripción |
 |---|---|---|---|
-| `GET` | `/carrito` | Cliente / Invitado | Obtiene el carrito activo, subtotal, impuestos y descuentos. |
-| `POST` | `/carrito/items` | Cliente / Invitado | Agrega variante al carrito validando stock disponible en tiempo real. |
-| `PATCH` | `/carrito/items/:idVariante` | Cliente / Invitado | Modifica la cantidad de una línea del carrito. |
+| `GET` | `/carrito` | Cliente / Invitado | Consulta de carrito activo con totales e impuestos. |
+| `POST` | `/carrito/items` | Cliente / Invitado | Agrega variante validando existencia disponible. |
+| `PUT` | `/carrito/items/:idVariante` | Cliente / Invitado | Modifica cantidad de una variante. |
 | `DELETE` | `/carrito/items/:idVariante` | Cliente / Invitado | Elimina una variante del carrito. |
-| `DELETE` | `/carrito` | Cliente / Invitado | Vacía el carrito activo por completo. |
+| `DELETE` | `/carrito` | Cliente / Invitado | Vacía el carrito activo. |
+| `POST` | `/carrito/cupon` | Cliente / Invitado | Aplica cupón de descuento al carrito. |
+| `DELETE` | `/carrito/cupon` | Cliente / Invitado | Remueve el cupón del carrito. |
+| `POST` | `/carrito/migrar` | Cliente | Asocia el carrito de invitado al cliente al iniciar sesión. |
 
-### 10.5. Módulo de Cupones y Promociones (`/cupones`)
-| Método | Endpoint | Roles | Descripción |
+### 10.5. Cupones de Descuento (`/cupones`)
+| Método | Endpoint | Acceso | Descripción |
 |---|---|---|---|
-| `POST` | `/cupones/aplicar` | Cliente / Invitado | Valida y aplica un cupón de descuento al carrito activo. |
-| `DELETE` | `/cupones/remover` | Cliente / Invitado | Remueve el cupón aplicado al carrito. |
-| `GET` | `/cupones` | Admin | Listado administrativo de cupones con contador de usos. |
-| `POST` | `/cupones` | Admin | Creación de cupón con límites de uso total y por cliente. |
+| `GET` | `/cupones` | Administrador | Listado de cupones con contador de usos. |
+| `POST` | `/cupones` | Administrador | Creación de cupón con límites de uso total y por cliente. |
 
-### 10.6. Módulo de Checkout y Pagos (`/checkout`)
-| Método | Endpoint | Roles | Descripción |
+### 10.6. Checkout y Pagos (`/checkout`)
+| Método | Endpoint | Acceso | Descripción |
 |---|---|---|---|
-| `POST` | `/checkout/iniciar` | Cliente | Inicia checkout atómico, crea pedido y reserva existencias por 15 min. |
-| `POST` | `/checkout/confirmar-pago` | Cliente | Confirma el pago con clave de idempotencia, consume reserva y crea Kardex de salida. |
+| `POST` | `/checkout/iniciar` | Cliente | Crea pedido y reserva existencias por 15 minutos. |
+| `POST` | `/checkout/confirmar-pago` | Cliente | Confirma el pago con clave de idempotencia y aplica salida en Kardex. |
 
-### 10.7. Módulo de Pedidos y Devoluciones (`/pedidos` & `/devoluciones`)
-| Método | Endpoint | Roles | Descripción |
+### 10.7. Pedidos y Devoluciones (`/pedidos` & `/devoluciones`)
+| Método | Endpoint | Acceso | Descripción |
 |---|---|---|---|
-| `GET` | `/pedidos/mis-pedidos` | Cliente | Listado de pedidos propios (protección estricta contra IDOR). |
-| `GET` | `/pedidos/:id` | Cliente / Admin | Detalle completo de pedido, líneas, precios congelados y pagos. |
-| `GET` | `/pedidos/admin` | Operador / Admin | Listado administrativo de pedidos con filtros por estado, cliente y fechas. |
-| `POST` | `/pedidos/:id/cambiar-estado` | Operador / Admin | Transición de estado de pedido validada por matriz de estados. |
-| `POST` | `/devoluciones` | Cliente | Solicitud de devolución parcial o total de líneas de pedido. |
+| `GET` | `/pedidos/mis-pedidos` | Cliente | Listado de pedidos propios. |
+| `GET` | `/pedidos/admin` | Operador / Administrador | Listado de pedidos con filtros por estado, cliente y fechas. |
+| `GET` | `/pedidos/:id` | Cliente / Operador / Admin | Detalle del pedido (acceso validado por IDOR). |
+| `POST` | `/pedidos/:id/cambiar-estado` | Operador / Administrador | Avance de estado de pedido. |
+| `POST` | `/devoluciones` | Cliente / Operador / Admin | Solicitud o registro de devolución por línea. |
 
-### 10.8. Módulo de Dashboard y Reportes (`/reportes`)
-| Método | Endpoint | Roles | Descripción |
+### 10.8. Direcciones (`/direcciones`)
+| Método | Endpoint | Acceso | Descripción |
 |---|---|---|---|
-| `GET` | `/reportes/dashboard` | Admin | KPIs ejecutivos del día, ticket promedio del mes y carritos abandonados. |
-| `GET` | `/reportes/ventas-periodo` | Admin | Ventas netas y pedidos agrupados por día, semana o mes. |
-| `GET` | `/reportes/top-productos` | Admin | Top N productos más vendidos por unidades y volumen neto generado. |
-| `GET` | `/reportes/ventas-categoria`| Admin | Ventas y unidades por categoría (respaldado por `VW_Dashboard_VentasPorCategoria`). |
-| `GET` | `/reportes/carritos-abandonados`| Admin | Listado paginado de carritos inactivos según umbral de horas. |
+| `GET` | `/direcciones` | Cliente | Listado de direcciones del cliente autenticado. |
+| `POST` | `/direcciones` | Cliente | Registro de nueva dirección de entrega. |
+| `GET` | `/direcciones/:id` | Cliente | Detalle de dirección propia. |
+| `PUT` | `/direcciones/:id` | Cliente | Actualización de dirección propia. |
+| `DELETE` | `/direcciones/:id` | Cliente | Eliminación de dirección propia. |
+| `PATCH` | `/direcciones/:id/predeterminada` | Cliente | Marca dirección como predeterminada. |
 
-### 10.9. Módulo de Auditoría (`/bitacora`)
-| Método | Endpoint | Roles | Descripción |
+### 10.9. Reportes y Métricas (`/reportes`)
+| Método | Endpoint | Acceso | Descripción |
 |---|---|---|---|
-| `GET` | `/bitacora` | Admin | Consulta paginada de la bitácora inmutable con filtro por módulo y fecha. |
+| `GET` | `/reportes/dashboard` | Administrador | Métricas generales del día y mes. |
+| `GET` | `/reportes/ventas-periodo` | Administrador | Ventas y pedidos agrupados por día, semana o mes. |
+| `GET` | `/reportes/top-productos` | Administrador | Productos más vendidos por unidades y monto. |
+| `GET` | `/reportes/ventas-categoria` | Administrador | Ventas agrupadas por categoría. |
+| `GET` | `/reportes/carritos-abandonados` | Administrador | Listado de carritos inactivos según umbral. |
+
+### 10.10. Usuarios y Seguridad (`/usuarios` & `/catalogos`)
+| Método | Endpoint | Acceso | Descripción |
+|---|---|---|---|
+| `GET` | `/usuarios` | Administrador | Listado paginado de usuarios con filtros por rol y estado. |
+| `POST` | `/usuarios` | Administrador | Creación de personal interno (Operador o Administrador). |
+| `GET` | `/usuarios/:id` | Administrador | Detalle completo de usuario. |
+| `PUT` | `/usuarios/:id` | Administrador | Actualización de datos de usuario. |
+| `PATCH` | `/usuarios/:id/estado` | Administrador | Activación o desactivación de cuenta. |
+| `GET` | `/catalogos/roles` | Administrador | Listado de roles disponibles. |
+| `GET` | `/catalogos/permisos` | Administrador | Listado de permisos del sistema. |
+
+### 10.11. Auditoría (`/bitacora`)
+| Método | Endpoint | Acceso | Descripción |
+|---|---|---|---|
+| `GET` | `/bitacora` | Administrador | Consulta de bitácora con filtro por módulo y fechas. |
