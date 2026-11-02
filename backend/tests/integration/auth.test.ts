@@ -3,7 +3,7 @@ import request from "supertest";
 import { createApp } from "../../src/app";
 import { getDbPool, closeDbPool } from "../../src/config/database";
 
-describe("Módulo de Autenticación y Autorización (RF-01)", () => {
+describe("Módulo de Autenticación y Autorización ", () => {
   const app = createApp();
   const testEmail = `test.cliente.${Date.now()}@shopcart.com`;
   const testPassword = "Password123!";
@@ -148,7 +148,7 @@ describe("Módulo de Autenticación y Autorización (RF-01)", () => {
       .post("/api/v1/auth/refresh")
       .send({ refreshToken: firstRefreshTokenValue });
 
-    // La base de datos detecta el reuso (RF-01) y revoca toda la familia
+    // La base de datos detecta el reuso  y revoca toda la familia
     expect([401, 403]).toContain(res.status);
     expect(res.body.exito).toBe(false);
   });

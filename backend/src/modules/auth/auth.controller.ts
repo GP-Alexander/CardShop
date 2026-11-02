@@ -68,6 +68,29 @@ export class AuthController {
     }
   };
 
+  google = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const direccionIp = req.ip || req.socket.remoteAddress;
+      const { idToken } = req.body;
+      const resultado = await this.authService.autenticarGoogle(idToken, direccionIp);
+
+      this.establecerCookieRefresh(res, resultado.refreshToken);
+
+      res.status(200).json({
+        exito: true,
+        mensaje: "Autenticación con Google exitosa.",
+        datos: {
+          usuario: resultado.usuario,
+          accessToken: resultado.accessToken,
+          refreshToken: resultado.refreshToken,
+          expiraEnSegundos: resultado.expiraEnSegundos,
+        },
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
   refresh = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const tokenActual = req.body?.refreshToken || req.cookies?.refreshToken;

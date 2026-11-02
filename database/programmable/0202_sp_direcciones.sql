@@ -1,7 +1,5 @@
 /*
-    ShopCart - 0202 Procedimientos Almacenados: Direcciones de Clientes (RF-01, RF-06)
-    Motor: Microsoft SQL Server 2019+
-    Convención: SP_Modulo_Proceso, PascalCase, THROW 50xxx, parámetros tipados.
+    ShopCart - 0202 Procedimientos Almacenados: Direcciones de Clientes 
     Seguridad: Validación estricta anti-IDOR en todas las operaciones.
 */
 SET NOCOUNT ON;
@@ -128,7 +126,7 @@ GO
 
 /* =========================================================================
    2. SP_Direccion_ListarPropias
-   Retorna todas las direcciones activas del usuario autenticado (RF-01).
+   Retorna todas las direcciones activas del usuario autenticado .
    Ordenadas con la predeterminada al inicio y luego por fecha descendente.
    ========================================================================= */
 CREATE OR ALTER PROCEDURE dbo.SP_Direccion_ListarPropias

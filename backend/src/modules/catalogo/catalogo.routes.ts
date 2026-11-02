@@ -123,7 +123,7 @@ catalogoRouter.patch(
   catalogoController.actualizarVariante
 );
 
-// Subida y optimización de imágenes (RF-02)
+// Subida y optimización de imágenes
 catalogoRouter.post(
   "/imagenes/subir",
   autenticar,

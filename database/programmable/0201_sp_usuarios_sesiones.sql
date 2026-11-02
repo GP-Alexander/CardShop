@@ -1,7 +1,5 @@
 /*
-    ShopCart - 0201 Procedimientos Almacenados: Usuarios y Sesiones (RF-01, RF-09)
-    Motor: Microsoft SQL Server 2019+
-    Convención: SP_Modulo_Proceso, PascalCase, THROW 50xxx, parámetros tipados.
+    ShopCart - 0201 Procedimientos Almacenados: Usuarios y Sesiones 
 */
 SET NOCOUNT ON;
 SET XACT_ABORT ON;
@@ -10,7 +8,7 @@ GO
 /* =========================================================================
    1. SP_Usuario_RegistrarCliente
    Registra un cliente nuevo asignándole automáticamente el rol 'Cliente'.
-   Registra el evento en la Bitácora de Auditoría (RF-09).
+   Registra el evento en la Bitácora de Auditoría .
    ========================================================================= */
 CREATE OR ALTER PROCEDURE dbo.SP_Usuario_RegistrarCliente
     @Nombres NVARCHAR(100),
@@ -81,7 +79,7 @@ BEGIN
 
         SET @NuevoIDUsuario = SCOPE_IDENTITY();
 
-        -- Preparar JSON para auditoría en bitácora (RF-09)
+        -- Preparar JSON para auditoría en bitácora 
         SET @ValorNuevoJson = (
             SELECT 
                 @NuevoIDUsuario AS idUsuario,
@@ -135,7 +133,7 @@ GO
 /* =========================================================================
    1.1. SP_Usuario_RegistrarInterno
    Registra un usuario interno (Operador o Administrador) con validación
-   de rol, idempotencia y registro en la Bitácora de Auditoría (RF-01, RF-09).
+   de rol, idempotencia y registro en la Bitácora de Auditoría .
    ========================================================================= */
 CREATE OR ALTER PROCEDURE dbo.SP_Usuario_RegistrarInterno
     @IDUsuarioAdmin INT = NULL,
@@ -210,7 +208,7 @@ BEGIN
 
         SET @NuevoIDUsuario = SCOPE_IDENTITY();
 
-        -- Preparar JSON para auditoría en bitácora (RF-09)
+        -- Preparar JSON para auditoría en bitácora 
         SET @ValorNuevoJson = (
             SELECT 
                 @NuevoIDUsuario AS idUsuario,
@@ -358,7 +356,7 @@ BEGIN
     IF @IDUsuario IS NULL OR @IDFamilia IS NULL OR @HashToken IS NULL OR @FechaExpiracion IS NULL
         THROW 50001, N'Parámetros obligatorios faltantes para crear la sesión.', 1;
 
-    -- Verificar que el usuario exista y esté activo (RF-01)
+    -- Verificar que el usuario exista y esté activo 
     IF NOT EXISTS (SELECT 1 FROM dbo.Usuario WHERE IDUsuario = @IDUsuario AND EstaActivo = 1)
         THROW 50203, N'El usuario no existe o se encuentra inactivo.', 1;
 
@@ -398,7 +396,7 @@ GO
    5. SP_TokenSesion_Rotar
    Rota un refresh token consumiendo el actual y emitiendo uno nuevo.
    SEGURIDAD CRÍTICA: Si el token ya fue usado o revocado (reuso malicioso),
-   revoca inmediatamente TODA la familia de sesiones (RF-01).
+   revoca inmediatamente TODA la familia de sesiones .
    ========================================================================= */
 CREATE OR ALTER PROCEDURE dbo.SP_TokenSesion_Rotar
     @HashTokenActual CHAR(64),
@@ -439,7 +437,7 @@ BEGIN
     IF @FechaRevocacion IS NOT NULL
         THROW 50201, N'La sesión ha sido revocada o ha expirado. Inicie sesión nuevamente.', 1;
 
-    -- DETECCIÓN DE REUSO / BRECHA DE SEGURIDAD (RF-01)
+    -- DETECCIÓN DE REUSO / BRECHA DE SEGURIDAD 
     -- Si el token NO está revocado pero ya fue consumido anteriormente:
     -- Intento de suplantación con un refresh token rotado. Revoca toda la familia activa.
     IF @FechaUso IS NOT NULL
@@ -579,7 +577,7 @@ GO
 /* =========================================================================
    7. SP_Usuario_ListarPaginado
    Lista usuarios con filtros por texto, rol y estado, ordenamiento
-   y paginación del servidor (RF-01, RF-08).
+   y paginación del servidor .
    ========================================================================= */
 CREATE OR ALTER PROCEDURE dbo.SP_Usuario_ListarPaginado
     @Busqueda NVARCHAR(100) = NULL,
@@ -662,7 +660,7 @@ GO
 /* =========================================================================
    8. SP_Usuario_ObtenerDetalle
    Obtiene el detalle completo de un usuario por su ID, junto con sus
-   direcciones registradas (RF-01).
+   direcciones registradas .
    ========================================================================= */
 CREATE OR ALTER PROCEDURE dbo.SP_Usuario_ObtenerDetalle
     @IDUsuario INT
@@ -717,7 +715,7 @@ GO
 /* =========================================================================
    9. SP_Usuario_ActualizarAdmin
    Permite al Administrador actualizar datos de un usuario (nombres, teléfono,
-   rol) registrando el cambio en la Bitácora de Auditoría (RF-01, RF-09).
+   rol) registrando el cambio en la Bitácora de Auditoría .
    ========================================================================= */
 CREATE OR ALTER PROCEDURE dbo.SP_Usuario_ActualizarAdmin
     @IDUsuarioAdmin INT,
@@ -780,7 +778,7 @@ BEGIN
     DECLARE @ValorAnteriorJson NVARCHAR(MAX);
     DECLARE @ValorNuevoJson NVARCHAR(MAX);
 
-    -- Capturar estado anterior para auditoría (RF-09)
+    -- Capturar estado anterior para auditoría 
     SET @ValorAnteriorJson = (
         SELECT 
             u.IDUsuario,
@@ -863,9 +861,9 @@ GO
 
 /* =========================================================================
    10. SP_Usuario_CambiarEstado
-   Activa o desactiva a un usuario sin borrado físico (RF-01).
-   Si se desactiva, revoca inmediatamente todas sus sesiones activas (RF-01).
-   Registra el cambio en la Bitácora de Auditoría (RF-09).
+   Activa o desactiva a un usuario sin borrado físico .
+   Si se desactiva, revoca inmediatamente todas sus sesiones activas .
+   Registra el cambio en la Bitácora de Auditoría .
    ========================================================================= */
 CREATE OR ALTER PROCEDURE dbo.SP_Usuario_CambiarEstado
     @IDUsuarioAdmin INT,

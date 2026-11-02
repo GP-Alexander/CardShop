@@ -9,7 +9,7 @@ async function main() {
   const hashAdmin = await argon2.hash("Admin1234!", { type: argon2.argon2id });
   const hashOperador = await argon2.hash("Operador1234!", { type: argon2.argon2id });
 
-  // 1. Administrador (Invocación exclusiva mediante Stored Procedure con parámetros tipados)
+  // Administrador
   await pool
     .request()
     .input("Nombres", sql.NVarChar(100), "Admin")
@@ -19,7 +19,7 @@ async function main() {
     .input("HashContrasena", sql.NVarChar(255), hashAdmin)
     .execute("dbo.SP_Usuario_RegistrarInterno");
 
-  // 2. Operador (Invocación exclusiva mediante Stored Procedure con parámetros tipados)
+  // Operador
   await pool
     .request()
     .input("Nombres", sql.NVarChar(100), "Operador")

@@ -3,7 +3,7 @@ import request from "supertest";
 import { createApp } from "../../src/app";
 import { getDbPool, closeDbPool } from "../../src/config/database";
 
-describe("Módulo de Catálogo de Productos y Categorías (RF-02, RF-09)", () => {
+describe("Módulo de Catálogo de Productos y Categorías ", () => {
   const app = createApp();
 
   let adminAccessToken: string;

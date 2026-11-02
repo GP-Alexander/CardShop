@@ -1,20 +1,5 @@
 /*
-    ShopCart v3 - 0001 Base, seguridad, usuarios y bitacora
-    Motor: SQL Server 2019+
-    Este archivo reemplaza al 0001 de la v2. No ejecutar ambos.
-
-    Cambios frente a v2:
-      - Direccion tiene llave unica (IDDireccion, IDUsuario) para que Pedido pueda
-        garantizar que la direccion pertenece al usuario (FK compuesta en 0005).
-      - RegistroBitacora permite IDUsuario NULL para eventos automaticos.
-      - El usuario del sistema se crea aqui, porque el kardex, el historial de estados
-        y la bitacora lo necesitan desde la primera ejecucion (antes estaba en la semilla).
-      - Permisos del Operador ajustados al enunciado.
-
-    Convenciones:
-      - Objetos y columnas en PascalCase; llaves IDNombre IDENTITY.
-      - Montos DECIMAL; fechas DATETIME2(3) en UTC.
-      - Cada archivo se ejecuta en una transaccion desde el runner. GO separa lotes.
+    ShopCart - 0001 Base, seguridad, usuarios y bitácora
 */
 SET NOCOUNT ON;
 SET XACT_ABORT ON;
@@ -128,7 +113,7 @@ CREATE INDEX IX_TokenSesion_Familia ON dbo.TokenSesion(IDFamilia);
 CREATE INDEX IX_TokenSesion_Reemplazo ON dbo.TokenSesion(IDTokenReemplazo) WHERE IDTokenReemplazo IS NOT NULL;
 GO
 
-/* ---------- Bitacora (RF-09) ----------
+/* ---------- Bitacora  ----------
    IDUsuario NULL para eventos automaticos (jobs, reservas vencidas). */
 CREATE TABLE dbo.RegistroBitacora (
     IDBitacora BIGINT IDENTITY(1,1) CONSTRAINT PK_RegistroBitacora PRIMARY KEY,
@@ -189,9 +174,7 @@ VALUES
 ('audit.read',        'bitacora',    'leer',         N'Consultar la bitacora.');
 GO
 
-/* Cliente: solo lo propio.
-   Operador: pedidos e inventario (segun el enunciado).
-   Administrador: todo. La autorizacion por dueno del recurso se valida tambien en cada SP. */
+/* Asignación inicial de permisos por rol */
 INSERT dbo.RolPermiso (IDRol, IDPermiso)
 SELECT r.IDRol, p.IDPermiso
 FROM dbo.Rol AS r

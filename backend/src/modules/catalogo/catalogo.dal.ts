@@ -79,6 +79,7 @@ interface VarianteDbRow {
   EstaActiva: boolean;
   FechaCreacion: Date;
   FechaActualizacion: Date;
+  Existencia: number;
   AtributosJson: string | null;
 }
 
@@ -442,6 +443,7 @@ export class CatalogoDal {
         costo: v.Costo !== null ? Number(v.Costo) : null,
         pesoGramos: v.PesoGramos,
         estaActiva: v.EstaActiva,
+        existencia: Number(v.Existencia ?? 0),
         fechaCreacion: v.FechaCreacion.toISOString(),
         fechaActualizacion: v.FechaActualizacion.toISOString(),
         atributos: atributos.map((a: any) => ({

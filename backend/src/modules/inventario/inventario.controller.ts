@@ -65,7 +65,7 @@ export class InventarioController {
       const item = await this.inventarioService.registrarAjuste(input, idUsuario, ip);
       res.json({
         exito: true,
-        mensaje: "Ajuste manual de inventario registrado con éxito en Kardex (RF-03)",
+        mensaje: "Ajuste manual de inventario registrado con éxito en el Kardex",
         datos: item,
       });
     } catch (error) {
@@ -96,7 +96,7 @@ export class InventarioController {
       const resultado = await this.inventarioService.listarKardex(filtros);
       res.json({
         exito: true,
-        mensaje: "Movimientos de Kardex consultados exitosamente (RF-03)",
+        mensaje: "Movimientos de Kardex consultados exitosamente",
         ...resultado,
       });
     } catch (error) {

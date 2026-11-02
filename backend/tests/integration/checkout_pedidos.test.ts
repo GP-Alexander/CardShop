@@ -4,7 +4,7 @@ import { createApp } from "../../src/app";
 import { getDbPool, closeDbPool } from "../../src/config/database";
 import { randomUUID } from "crypto";
 
-describe("Módulo de Checkout, Pedidos y Devoluciones (RF-06 y RF-07)", () => {
+describe("Módulo de Checkout, Pedidos y Devoluciones ", () => {
   const app = createApp();
 
   let adminAccessToken: string;
@@ -116,7 +116,7 @@ describe("Módulo de Checkout, Pedidos y Devoluciones (RF-06 y RF-07)", () => {
         idCategoria,
         nombre: `Prod Checkout ${timestamp}`,
         slug: `prod-chk-${timestamp}`,
-        marca: "Pentandra Tech",
+        marca: "TechPro",
         descripcion: "Producto de prueba para checkout",
         variantes: [
           {
@@ -160,7 +160,7 @@ describe("Módulo de Checkout, Pedidos y Devoluciones (RF-06 y RF-07)", () => {
       });
     expect(resEnt2.status).toBe(201);
 
-    // 7. Crear Cupón de descuento válido (RF-05)
+    // 7. Crear Cupón de descuento válido 
     codigoCuponPrueba = `DESC20-${timestamp}`;
     await request(app)
       .post("/api/v1/cupones")
@@ -206,7 +206,7 @@ describe("Módulo de Checkout, Pedidos y Devoluciones (RF-06 y RF-07)", () => {
     });
   });
 
-  describe("2. Inicio de Checkout y Reserva Temporal de 15 minutos (RF-06)", () => {
+  describe("2. Inicio de Checkout y Reserva Temporal de 15 minutos ", () => {
     let idPedidoCreado: number;
     let claveIdempotenciaCheckout: string;
 
@@ -251,7 +251,7 @@ describe("Módulo de Checkout, Pedidos y Devoluciones (RF-06 y RF-07)", () => {
     });
   });
 
-  describe("3. Prevención de sobreventa y concurrencia (RF-06)", () => {
+  describe("3. Prevención de sobreventa y concurrencia ", () => {
     it("debe rechazar checkout si la existencia disponible es insuficiente por reservas activas", async () => {
       // Cliente 1 agrega las 2 unidades limitadas
       await request(app)
@@ -293,7 +293,7 @@ describe("Módulo de Checkout, Pedidos y Devoluciones (RF-06 y RF-07)", () => {
     });
   });
 
-  describe("4. Confirmación de Pago e Idempotencia (RF-06)", () => {
+  describe("4. Confirmación de Pago e Idempotencia ", () => {
     let idPedidoParaPagar: number;
     let clavePagoIdempotencia: string;
 
@@ -371,7 +371,7 @@ describe("Módulo de Checkout, Pedidos y Devoluciones (RF-06 y RF-07)", () => {
     });
   });
 
-  describe("5. Ciclo de Vida de Pedidos, Transiciones y Devoluciones (RF-07)", () => {
+  describe("5. Ciclo de Vida de Pedidos, Transiciones y Devoluciones ", () => {
     let idPedidoCiclo: number;
 
     beforeAll(async () => {
@@ -494,7 +494,7 @@ describe("Módulo de Checkout, Pedidos y Devoluciones (RF-06 y RF-07)", () => {
       expect(resEnt.status).toBe(200);
     });
 
-    it("debe procesar una devolución parcial y total con reintegro al kardex (RF-07)", async () => {
+    it("debe procesar una devolución parcial y total con reintegro al kardex ", async () => {
       // Obtener el detalle del pedido para saber el idPedidoDetalle
       const resDetalle = await request(app)
         .get(`/api/v1/pedidos/${idPedidoCiclo}`)

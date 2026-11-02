@@ -16,23 +16,47 @@ export type DireccionEntregaInput = z.infer<typeof DireccionEntregaSchema>;
 export const IniciarCheckoutSchema = z.object({
   idDireccion: z.number().int().positive("Dirección requerida"),
   codigoCupon: z.string().trim().optional(),
+  claveIdempotencia: z.string().trim().min(5).optional(),
 });
 export type IniciarCheckoutInput = z.infer<typeof IniciarCheckoutSchema>;
 
 export const ConfirmarPagoSchema = z.object({
-  idReserva: z.number().int().positive("Reserva requerida"),
-  claveIdempotencia: z.string().uuid("Clave de idempotencia requerida (UUID)"),
-  metodoPago: z.enum(["Tarjeta", "Transferencia", "EfectivoContraEntrega"]),
+  idPedido: z.coerce.number().int().positive("Pedido requerido").optional(),
+  idReserva: z.coerce.number().int().positive().optional(),
+  claveIdempotencia: z.string().trim().min(5, "Clave de idempotencia requerida"),
+  metodoPago: z.string().trim().default("SIMULADOR"),
+  referenciaProveedor: z.string().trim().optional(),
+  monto: z.coerce.number().positive().optional(),
 });
 export type ConfirmarPagoInput = z.infer<typeof ConfirmarPagoSchema>;
 
-export interface ReservaCheckoutDTO {
+export interface CheckoutIniciadoDTO {
+  idPedido: number;
+  numeroPedido: string;
+  total: number;
+  subtotal: number;
+  descuento: number;
+  costoEnvio: number;
+  ivaIncluido: number;
+  moneda: string;
+  estadoCodigo: string;
+  estadoNombre: string;
   idReserva: number;
-  expiraEn: string;
-  totalPagar: number;
-  items: Array<{
-    idVariante: number;
-    cantidad: number;
-    precioUnitario: number;
-  }>;
+  estadoReserva: string;
+  fechaExpiracionReserva: string;
+  segundosRestantesReserva: number;
+}
+
+export interface PagoConfirmadoDTO {
+  idPedido: number;
+  numeroPedido: string;
+  total: number;
+  moneda: string;
+  estadoCodigo: string;
+  estadoNombre: string;
+  idPago: number;
+  estadoPago: string;
+  proveedor: string;
+  referenciaProveedor?: string | null;
+  fechaConfirmacion: string;
 }

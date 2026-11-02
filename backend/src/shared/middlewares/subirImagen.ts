@@ -46,16 +46,15 @@ export async function optimizarYGuardarImagen(
   try {
     const carpetaDestino = path.resolve(process.cwd(), "uploads", "productos");
 
-    // Crear carpeta automáticamente si no existe (portabilidad)
+    // Asegurar directorio destino
     if (!fs.existsSync(carpetaDestino)) {
       fs.mkdirSync(carpetaDestino, { recursive: true });
     }
 
-    // Generar nombre único con UUID para seguridad absoluta (evita sobreescritura y path traversal)
     const nombreArchivo = `${crypto.randomUUID()}.webp`;
     const rutaArchivo = path.join(carpetaDestino, nombreArchivo);
 
-    // Procesar con Sharp: redimensionar si es mayor a 1200px y comprimir a WebP
+    // Redimensionar y convertir a WebP
     await sharp(req.file.buffer)
       .resize({
         width: 1200,
@@ -64,7 +63,6 @@ export async function optimizarYGuardarImagen(
       .webp({ quality: 80 })
       .toFile(rutaArchivo);
 
-    // Adjuntar la ruta URL relativa que se persistirá en la BD
     req.fileUrl = `/uploads/productos/${nombreArchivo}`;
 
     next();

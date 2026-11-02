@@ -22,6 +22,11 @@ export const LoginSchema = z.object({
 });
 export type LoginInput = z.infer<typeof LoginSchema>;
 
+export const GoogleAuthSchema = z.object({
+  idToken: z.string().min(10, "El token de autenticación de Google es requerido"),
+});
+export type GoogleAuthInput = z.infer<typeof GoogleAuthSchema>;
+
 export const RefreshTokenSchema = z.object({
   refreshToken: z.string().min(1, "Refresh token requerido"),
 });

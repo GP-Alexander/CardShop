@@ -187,6 +187,7 @@ export interface VarianteDetalleDTO {
   costo: number | null;
   pesoGramos: number | null;
   estaActiva: boolean;
+  existencia: number;
   fechaCreacion: string;
   fechaActualizacion: string;
   atributos: VarianteAtributoDetalleDTO[];

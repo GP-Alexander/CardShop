@@ -3,7 +3,7 @@ import request from "supertest";
 import { createApp } from "../../src/app";
 import { getDbPool, closeDbPool } from "../../src/config/database";
 
-describe("Módulo de Carrito de Compras y Cupones (RF-04 y RF-05)", () => {
+describe("Módulo de Carrito de Compras y Cupones ", () => {
   const app = createApp();
 
   let adminAccessToken: string;
@@ -160,7 +160,7 @@ describe("Módulo de Carrito de Compras y Cupones (RF-04 y RF-05)", () => {
     expect(res.body.datos.total).toBe(200);
   });
 
-  it("3. CRITERIO CRÍTICO RF-04: Debe rechazar agregar más cantidad que la existencia disponible (409)", async () => {
+  it("3. Debe rechazar agregar más cantidad que la existencia disponible (409)", async () => {
     // Tenemos 5 unidades en total, 2 ya en el carrito. Intentar agregar 4 más (total 6 > 5)
     const res = await request(app)
       .post("/api/v1/carrito/items")
@@ -187,7 +187,7 @@ describe("Módulo de Carrito de Compras y Cupones (RF-04 y RF-05)", () => {
     expect(res.body.datos.subtotal).toBe(300); // 3 * Q100
   });
 
-  it("5. CRITERIO CRÍTICO RF-04: Debe rechazar modificar cantidad si supera la existencia disponible (409)", async () => {
+  it("5. Debe rechazar modificar cantidad si supera la existencia disponible (409)", async () => {
     // Intentar cambiar a 10 unidades cuando solo hay 5
     const res = await request(app)
       .put(`/api/v1/carrito/items/${idVariantePrueba}`)
@@ -201,7 +201,7 @@ describe("Módulo de Carrito de Compras y Cupones (RF-04 y RF-05)", () => {
   });
 
   /* =========================================================================
-     2. APLICACIÓN DE CUPONES Y DESCUENTOS (RF-05)
+     2. APLICACIÓN DE CUPONES Y DESCUENTOS 
      ========================================================================= */
 
   it("6. Debe aplicar un cupón válido y calcular descuento y total sin errores de redondeo (200)", async () => {
@@ -220,7 +220,7 @@ describe("Módulo de Carrito de Compras y Cupones (RF-04 y RF-05)", () => {
     expect(res.body.datos.total).toBe(270); // Q300 - Q30 = Q270
   });
 
-  it("7. CRITERIO CRÍTICO RF-05: Debe rechazar un cupón si no cumple el monto mínimo de compra (409)", async () => {
+  it("7. Debe rechazar un cupón si no cumple el monto mínimo de compra (409)", async () => {
     const res = await request(app)
       .post("/api/v1/carrito/cupon")
       .set("Cookie", guestCookie)
@@ -232,7 +232,7 @@ describe("Módulo de Carrito de Compras y Cupones (RF-04 y RF-05)", () => {
     expect(res.body.mensaje).toMatch(/monto mínimo/i);
   });
 
-  it("8. CRITERIO CRÍTICO RF-05: Debe rechazar un cupón inexistente (409)", async () => {
+  it("8. Debe rechazar un cupón inexistente (409)", async () => {
     const res = await request(app)
       .post("/api/v1/carrito/cupon")
       .set("Cookie", guestCookie)

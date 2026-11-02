@@ -3,13 +3,14 @@ import { AuthController } from "./auth.controller";
 import { validar } from "../../shared/middlewares/validar";
 import { autenticar } from "../../shared/middlewares/autenticar";
 import { rateLimitLogin, rateLimitRegistro } from "../../shared/middlewares/rateLimiter";
-import { RegistroClienteSchema, LoginSchema } from "@shopcart/contracts";
+import { RegistroClienteSchema, LoginSchema, GoogleAuthSchema } from "@shopcart/contracts";
 
 const router = Router();
 const controller = new AuthController();
 
 router.post("/registro", rateLimitRegistro, validar(RegistroClienteSchema, "body"), controller.registro);
 router.post("/login", rateLimitLogin, validar(LoginSchema, "body"), controller.login);
+router.post("/google", rateLimitLogin, validar(GoogleAuthSchema, "body"), controller.google);
 router.post("/refresh", controller.refresh);
 router.post("/logout", controller.logout);
 router.get("/yo", autenticar, controller.yo);

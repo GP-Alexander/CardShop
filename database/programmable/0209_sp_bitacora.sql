@@ -1,6 +1,5 @@
 /* =========================================================================
-   ShopCart - SPs de Auditoría y Bitácora del Sistema (RF-09)
-   Convención: SP_Bitacora_Proceso
+   ShopCart - SPs de Auditoría y Bitácora del Sistema 
    ========================================================================= */
 SET NOCOUNT ON;
 SET XACT_ABORT ON;

@@ -4,7 +4,7 @@ import { ForbiddenError, UnauthorizedError } from "../errors/AppError";
 type RolPermitido = "Cliente" | "Operador" | "Administrador";
 
 /**
- * Middleware para restringir el acceso a ciertos roles (RF-01).
+ * Middleware para restringir el acceso a ciertos roles.
  */
 export function autorizarRoles(...rolesPermitidos: RolPermitido[]) {
   return (req: Request, _res: Response, next: NextFunction): void => {

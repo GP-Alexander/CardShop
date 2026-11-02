@@ -25,7 +25,7 @@ router.get(
   controller.listarExistencias
 );
 
-// 2. Consultar historial de Kardex (RF-03)
+// 2. Consultar historial de Kardex
 router.get(
   "/kardex",
   autorizarPermiso("inventory.read"),
@@ -48,7 +48,7 @@ router.post(
   controller.registrarEntrada
 );
 
-// 5. Registrar ajuste manual físico de existencia (RF-03)
+// 5. Registrar ajuste manual físico de existencia
 router.post(
   "/ajuste",
   autorizarPermiso("inventory.adjust"),

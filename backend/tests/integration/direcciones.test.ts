@@ -3,7 +3,7 @@ import request from "supertest";
 import { createApp } from "../../src/app";
 import { getDbPool, closeDbPool } from "../../src/config/database";
 
-describe("Módulo de Direcciones de Cliente y Protección Anti-IDOR (RF-01, Regla Crítica #3)", () => {
+describe("Módulo de Direcciones de Cliente y Protección Anti-IDOR ", () => {
   const app = createApp();
 
   let clienteAToken: string;

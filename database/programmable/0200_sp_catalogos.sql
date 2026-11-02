@@ -1,6 +1,5 @@
 /* =========================================================================
    ShopCart - SPs de Catálogos de Sistema (Roles y Permisos)
-   Convención: SP_Catalogos_Proceso
    ========================================================================= */
 SET NOCOUNT ON;
 SET XACT_ABORT ON;

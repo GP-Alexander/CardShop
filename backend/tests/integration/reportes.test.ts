@@ -4,7 +4,7 @@ import { createApp } from "../../src/app";
 import { getDbPool, closeDbPool } from "../../src/config/database";
 import { randomUUID } from "crypto";
 
-describe("Módulo de Dashboard y Reportes Operativos (RF-08)", () => {
+describe("Módulo de Dashboard y Reportes Operativos ", () => {
   const app = createApp();
 
   let adminAccessToken: string;

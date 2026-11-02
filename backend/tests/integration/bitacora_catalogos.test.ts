@@ -3,7 +3,7 @@ import request from "supertest";
 import { createApp } from "../../src/app";
 import { getDbPool, closeDbPool } from "../../src/config/database";
 
-describe("Módulos de Auditoría (Bitácora RF-09) y Catálogos del Sistema", () => {
+describe("Módulos de Auditoría (Bitácora) y Catálogos del Sistema", () => {
   const app = createApp();
 
   let adminAccessToken: string;
@@ -91,7 +91,7 @@ describe("Módulos de Auditoría (Bitácora RF-09) y Catálogos del Sistema", ()
   });
 
   // ==========================================
-  // BITÁCORA INMUTABLE (RF-09)
+  // BITÁCORA INMUTABLE 
   // ==========================================
 
   it("5. Bitácora: Debe rechazar la consulta sin token (401)", async () => {

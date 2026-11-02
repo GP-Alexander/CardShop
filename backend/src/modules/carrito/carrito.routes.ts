@@ -15,7 +15,7 @@ const controller = new CarritoController();
 // 1. Obtener carrito activo (invitado o cliente)
 router.get("/", autenticarOpcional, controller.obtener);
 
-// 2. Agregar ítem al carrito (valida stock disponible RF-04)
+// 2. Agregar ítem al carrito
 router.post(
   "/items",
   autenticarOpcional,
@@ -37,7 +37,7 @@ router.delete("/items/:idVariante", autenticarOpcional, controller.eliminarItem)
 // 5. Vaciar carrito completo
 router.delete("/", autenticarOpcional, controller.vaciar);
 
-// 6. Aplicar cupón de descuento al carrito (RF-05)
+// 6. Aplicar cupón de descuento al carrito
 router.post(
   "/cupon",
   autenticarOpcional,

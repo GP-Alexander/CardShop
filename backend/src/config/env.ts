@@ -26,6 +26,9 @@ const EnvSchema = z.object({
   // Parámetros de negocio
   RESERVA_EXPIRACION_MINUTOS: z.coerce.number().int().positive().default(15),
   IVA_PORCENTAJE: z.coerce.number().positive().default(0.12),
+
+  // OAuth Google
+  GOOGLE_CLIENT_ID: z.string().optional().default(""),
 });
 
 const parsed = EnvSchema.safeParse({
@@ -43,6 +46,7 @@ const parsed = EnvSchema.safeParse({
   JWT_REFRESH_EXPIRATION_DAYS: process.env.JWT_REFRESH_EXPIRATION_DAYS,
   RESERVA_EXPIRACION_MINUTOS: process.env.RESERVA_EXPIRACION_MINUTOS,
   IVA_PORCENTAJE: process.env.IVA_PORCENTAJE,
+  GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID || process.env.VITE_GOOGLE_CLIENT_ID || "",
 });
 
 if (!parsed.success) {

@@ -16,7 +16,7 @@ const registroPorIp = new Map<string, RegistroIntento>();
 
 /**
  * Middleware generador de Rate Limiting con ventana fija en memoria.
- * Cumple con el extra opcional de ciberseguridad (Pág. 14 del PDF) sin dependencias pesadas.
+ * Control de tasa de peticiones por IP.
  */
 export function crearRateLimiter(opciones: OpcionesRateLimiter) {
   const {
@@ -74,7 +74,7 @@ export function limpiarRegistrosRateLimit(): void {
 }
 
 /**
- * Limitador estricto para autenticación: máximo 5 intentos cada 15 minutos por IP (Pág. 14 del PDF).
+ * Limitador estricto para autenticación: máximo 5 intentos cada 15 minutos por IP.
  */
 export const rateLimitLogin = crearRateLimiter({
   ventanaMs: 15 * 60 * 1000, // 15 minutos

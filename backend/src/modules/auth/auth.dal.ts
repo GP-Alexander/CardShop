@@ -22,6 +22,33 @@ export class AuthDal {
     return res.recordset[0];
   }
 
+  async autenticarOAuthGoogle(datos: {
+    correo: string;
+    nombres: string;
+    apellidos: string;
+    idGoogle: string;
+    hashContrasena: string;
+    direccionIp?: string;
+  }): Promise<{
+    usuario: UsuarioDbRow;
+    permisos: string[];
+  }> {
+    const res = await ejecutarSp<UsuarioDbRow>("dbo.SP_Usuario_AutenticarOAuthGoogle", [
+      { nombre: "Correo", tipo: sql.NVarChar(254), valor: datos.correo },
+      { nombre: "Nombres", tipo: sql.NVarChar(100), valor: datos.nombres },
+      { nombre: "Apellidos", tipo: sql.NVarChar(100), valor: datos.apellidos },
+      { nombre: "IdGoogle", tipo: sql.NVarChar(100), valor: datos.idGoogle },
+      { nombre: "HashContrasena", tipo: sql.NVarChar(255), valor: datos.hashContrasena },
+      { nombre: "DireccionIP", tipo: sql.VarChar(45), valor: datos.direccionIp || null },
+    ]);
+
+    const usuario = res.recordsets[0]?.[0];
+    const permisosRows = (res.recordsets[1] as unknown as PermisoDbRow[]) || [];
+    const permisos = permisosRows.map((p) => p.Codigo);
+
+    return { usuario, permisos };
+  }
+
   async obtenerUsuarioPorCorreo(correo: string): Promise<{
     usuario: UsuarioDbRow | null;
     permisos: string[];

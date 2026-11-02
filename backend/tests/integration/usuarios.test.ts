@@ -3,7 +3,7 @@ import request from "supertest";
 import { createApp } from "../../src/app";
 import { getDbPool, closeDbPool } from "../../src/config/database";
 
-describe("Módulo de Administración de Usuarios (RF-01, RF-09)", () => {
+describe("Módulo de Administración de Usuarios ", () => {
   const app = createApp();
 
   let adminAccessToken: string;

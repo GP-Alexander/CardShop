@@ -1,7 +1,5 @@
 /*
-    ShopCart v3 - 0203 Procedimientos Almacenados: Catálogo de Productos y Categorías (RF-02, RF-09)
-    Motor: Microsoft SQL Server 2019+
-    Convención: SP_Modulo_Proceso, PascalCase, THROW 50xxx, parámetros tipados.
+    ShopCart v3 - 0203 Procedimientos Almacenados: Catálogo de Productos y Categorías 
     
     Procedimientos incluidos:
       -- Categorías --
@@ -101,7 +99,7 @@ BEGIN
 
         SET @NuevaIDCategoria = SCOPE_IDENTITY();
 
-        -- Auditoría en Bitácora (RF-09)
+        -- Auditoría en Bitácora 
         SET @ValorNuevoJson = (
             SELECT 
                 @NuevaIDCategoria AS idCategoria,
@@ -472,7 +470,7 @@ GO
 /* =========================================================================
    9. SP_Producto_CrearConVariantes
    Crea atómicamente un producto con sus variantes vendibles y su galería de imágenes.
-   Registra en bitácora RF-09.
+   Registra en bitácora .
    ========================================================================= */
 CREATE OR ALTER PROCEDURE dbo.SP_Producto_CrearConVariantes
     @IDUsuarioAdmin INT,
@@ -632,7 +630,7 @@ BEGIN
             LEFT JOIN @VariantesGeneradas vg ON img.skuVariante = vg.SKU;
         END
 
-        -- 4. Registrar en Bitácora de Auditoría (RF-09)
+        -- 4. Registrar en Bitácora de Auditoría 
         DECLARE @ValorNuevoJson NVARCHAR(MAX) = (
             SELECT 
                 @NuevoIDProducto AS idProducto,
@@ -815,6 +813,11 @@ BEGIN
         v.EstaActiva,
         v.FechaCreacion,
         v.FechaActualizacion,
+        ISNULL((
+            SELECT SUM(ISNULL(inv.Existencia, 0) - ISNULL(inv.CantidadReservada, 0))
+            FROM dbo.Inventario inv
+            WHERE inv.IDVariante = v.IDVariante
+        ), 0) AS Existencia,
         (
             SELECT 
                 a.IDAtributo,
@@ -847,7 +850,7 @@ GO
 
 /* =========================================================================
    12. SP_Producto_Actualizar
-   Actualiza datos generales del producto registrando en bitácora (RF-09).
+   Actualiza datos generales del producto registrando en bitácora .
    ========================================================================= */
 CREATE OR ALTER PROCEDURE dbo.SP_Producto_Actualizar
     @IDUsuarioAdmin INT,
@@ -958,7 +961,7 @@ GO
 
 /* =========================================================================
    13. SP_Producto_CambiarEstado
-   Desactiva o activa un producto (borrado lógico, no borrado físico RF-02).
+   Desactiva o activa un producto (borrado lógico, no borrado físico ).
    ========================================================================= */
 CREATE OR ALTER PROCEDURE dbo.SP_Producto_CambiarEstado
     @IDUsuarioAdmin INT,
@@ -1020,7 +1023,7 @@ GO
 /* =========================================================================
    14. SP_Variante_Actualizar
    Actualiza precio, costo, peso o estado de una variante.
-   Criterio RF-02: el precio se actualiza para futuras ventas; los pedidos anteriores
+   -- Criterio: el precio se actualiza para futuras ventas; los pedidos anteriores
    mantienen su precio congelado en PedidoDetalle.
    ========================================================================= */
 CREATE OR ALTER PROCEDURE dbo.SP_Variante_Actualizar

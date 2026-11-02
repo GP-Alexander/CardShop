@@ -1,3 +1,5 @@
+import crypto from "crypto";
+import { OAuth2Client } from "google-auth-library";
 import { AuthDal } from "./auth.dal";
 import { hashPassword, verifyPassword } from "../../shared/security/hash";
 import {
@@ -81,6 +83,92 @@ export class AuthService {
     if (!passwordValida) {
       throw new UnauthorizedError("Credenciales inválidas.", "CREDENCIALES_INVALIDAS");
     }
+
+    const familiaId = generarFamiliaSesion();
+    const refreshTokenPlano = generarRefreshTokenPlano();
+    const hashRefresh = hashearTokenSha256(refreshTokenPlano);
+
+    const fechaExpiracion = new Date();
+    fechaExpiracion.setDate(fechaExpiracion.getDate() + env.JWT_REFRESH_EXPIRATION_DAYS);
+
+    await this.authDal.crearSesion({
+      idUsuario: usuario.IDUsuario,
+      idFamilia: familiaId,
+      hashToken: hashRefresh,
+      fechaExpiracion,
+      direccionIp,
+    });
+
+    const accessToken = emitirAccessToken({
+      idUsuario: usuario.IDUsuario,
+      correo: usuario.Correo,
+      rol: usuario.NombreRol,
+      permisos,
+    });
+
+    const usuarioDTO: UsuarioAutenticadoDTO = {
+      idUsuario: usuario.IDUsuario,
+      correo: usuario.Correo,
+      nombre: usuario.Nombres,
+      apellido: usuario.Apellidos,
+      rol: usuario.NombreRol,
+      estaActivo: usuario.EstaActivo,
+    };
+
+    return {
+      usuario: usuarioDTO,
+      accessToken,
+      refreshToken: refreshTokenPlano,
+      expiraEnSegundos: 15 * 60,
+    };
+  }
+
+  async autenticarGoogle(idToken: string, direccionIp?: string): Promise<RespuestaAuthDTO> {
+    if (!idToken || typeof idToken !== "string" || idToken.trim().length === 0) {
+      throw new UnauthorizedError("El token de Google es requerido.", "TOKEN_REQUERIDO");
+    }
+
+    const client = new OAuth2Client(env.GOOGLE_CLIENT_ID || undefined);
+    let payload;
+
+    try {
+      const ticket = await client.verifyIdToken({
+        idToken,
+        audience: env.GOOGLE_CLIENT_ID ? env.GOOGLE_CLIENT_ID : undefined,
+      });
+      payload = ticket.getPayload();
+    } catch (err: unknown) {
+      const mensaje = err instanceof Error ? err.message : "Error al validar token";
+      throw new UnauthorizedError(
+        `El token de Google no es válido o ha expirado (${mensaje}).`,
+        "GOOGLE_TOKEN_INVALIDO"
+      );
+    }
+
+    if (!payload || !payload.email) {
+      throw new UnauthorizedError(
+        "El token de Google no contiene un correo electrónico verificado.",
+        "GOOGLE_EMAIL_NO_PROPORCIONADO"
+      );
+    }
+
+    const idGoogle = payload.sub;
+    const correo = payload.email;
+    const nombres = (payload.given_name || payload.name || "Usuario").slice(0, 100);
+    const apellidos = (payload.family_name || "Google").slice(0, 100);
+
+    // Contraseña hash segura para cumplir con el esquema obligatorio de dbo.Usuario
+    const randomSecret = crypto.randomBytes(32).toString("hex");
+    const hashContrasena = await hashPassword(randomSecret);
+
+    const { usuario, permisos } = await this.authDal.autenticarOAuthGoogle({
+      correo,
+      nombres,
+      apellidos,
+      idGoogle,
+      hashContrasena,
+      direccionIp,
+    });
 
     const familiaId = generarFamiliaSesion();
     const refreshTokenPlano = generarRefreshTokenPlano();

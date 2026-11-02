@@ -3,7 +3,7 @@ import request from "supertest";
 import { createApp } from "../../src/app";
 import { getDbPool, closeDbPool } from "../../src/config/database";
 
-describe("Módulo de Control de Inventario y Kardex (RF-03, RF-09)", () => {
+describe("Módulo de Control de Inventario y Kardex ", () => {
   const app = createApp();
 
   let adminAccessToken: string;
@@ -156,7 +156,7 @@ describe("Módulo de Control de Inventario y Kardex (RF-03, RF-09)", () => {
   });
 
   /* =========================================================================
-     3. AJUSTES MANUALES Y REGLAS DE NEGOCIO (RF-03)
+     3. AJUSTES MANUALES Y REGLAS DE NEGOCIO 
      ========================================================================= */
 
   it("7. Debe registrar un ajuste manual positivo con motivo obligatorio (200)", async () => {
@@ -190,7 +190,7 @@ describe("Módulo de Control de Inventario y Kardex (RF-03, RF-09)", () => {
     expect(res.body.datos.existencia).toBe(55); // 60 - 5
   });
 
-  it("9. CRITERIO CRÍTICO RF-03: Debe rechazar un ajuste que deje la existencia en negativo (409)", async () => {
+  it("9. Debe rechazar un ajuste que deje la existencia en negativo (409)", async () => {
     const res = await request(app)
       .post("/api/v1/inventario/ajuste")
       .set("Authorization", `Bearer ${adminAccessToken}`)

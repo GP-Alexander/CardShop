@@ -1,7 +1,7 @@
-# ShopCart — Plataforma B2C E-Commerce de Nivel Productivo
+# ShopCart — Plataforma B2C E-Commerce (Fase 1: Base de Datos & Backend API)
 
 > **Tech Challenge 360 — Grupo Pentandra**  
-> Solución integral de comercio electrónico de nivel empresarial construida con **SQL Server 2022**, **Node.js 24 LTS (TypeScript en modo estricto)** y arquitectura modular por capas.
+> Entrega oficial de **Fase 1**: Arquitectura relacional en **SQL Server 2022**, acceso a datos **100% mediante Stored Procedures** (cero ORM, cero SQL en código backend), API RESTful con **Node.js 24 LTS (TypeScript en modo estricto)**, contratos fuertemente tipados con Zod, documentación interactiva **OpenAPI 3.0 / Swagger UI** y suite de 112 pruebas de integración automatizadas.
 
 ---
 
@@ -46,7 +46,7 @@ El sistema fue diseñado y construido para cumplir estrictamente con los criteri
 | **Criptografía** | Argon2id (`argon2`) | Algoritmo de hash de contraseñas recomendado por OWASP y estándar RFC 9106. |
 | **Tokens y Sesiones** | JWT (`jsonwebtoken`) + Rotación | Access Token (15 min) y Refresh Token persistido con rotación y detección de reuso por familias criptográficas. |
 | **Pruebas** | Vitest 3.0+ & Supertest 7.0+ | Suite de pruebas de integración con cobertura completa de endpoints y base de datos real. |
-| **Monorepo** | npm Workspaces | Estructura modular: `database`, `packages/contracts`, `backend` y `frontend`. |
+| **Monorepo** | npm Workspaces | Estructura modular: `database`, `packages/contracts` y `backend`. |
 
 ---
 
@@ -119,32 +119,8 @@ El backend expone la interfaz interactiva de Swagger para que el evaluador pueda
 > **Tip para el Evaluador:**  
 > En Swagger UI, ejecute **`POST /auth/login`** con las credenciales demo (`admin@shopcart.com` / `Admin1234!`), copie el `accessToken` resultante y use el botón verde **Authorize** arriba a la derecha para habilitar las pruebas de todos los endpoints protegidos.
 
-### Paso 7: Iniciar la Aplicación Frontend (React 18 + Vite)
-En una nueva terminal, inicie el servidor de desarrollo del cliente web:
-```bash
-npm run dev:frontend
-```
-La aplicación web estará disponible de inmediato en:  
-**`http://localhost:5173`**
-
-#### Mapeo de Rutas de la Aplicación:
-- **Tienda B2C (Storefront):**
-  - Catálogo interactivo con filtros: `http://localhost:5173/` o `/catalogo`
-  - Ficha y detalle de producto: `/producto/:slug`
-  - Carrito de compras y cupones: `/carrito`
-  - Checkout concurrente (reserva 15 min): `/checkout`
-  - Portal de compras y devoluciones: `/pedidos` y `/pedidos/:id`
-  - Mi Perfil & Direcciones: `/perfil`
-  - Inicio de sesión y registro de clientes: `/login` y `/registro`
-- **Consola Administrativa (Backoffice):**
-  - Acceso administrativo: `/admin/login`
-  - Dashboard ejecutivo con KPIs y analítica SVG (RF-08): `/admin/dashboard`
-  - Logística de pedidos y máquina de estados (RF-07): `/admin/pedidos` y `/admin/pedidos/:id`
-  - Cupones y promociones (RF-05): `/admin/cupones`
-  - Catálogo y variantes (RF-02): `/admin/catalogo`, `/admin/categorias`, `/admin/atributos`
-  - Control de inventario y Kardex (RF-03): `/admin/inventario`
-  - Gestión de usuarios y roles (RF-01): `/admin/usuarios`
-  - Bitácora de auditoría inmutable (RF-09): `/admin/bitacora`
+> **Alcance de la Fase 1:**  
+> Esta entrega corresponde exclusivamente al **Backend & Base de Datos** (Fase 1). Toda la interacción, prueba de flujos y verificación de requerimientos funcionales (RF-01 a RF-09) se realiza a través de la interfaz interactiva de **Swagger UI** y la suite de pruebas de integración automatizadas.
 
 ---
 
@@ -199,7 +175,7 @@ Cada módulo del backend (`backend/src/modules/<modulo>/`) implementa una separa
 - **Ventana Deslizante en Memoria:** Middleware sin dependencias externas pesadas que rastrea intentos por IP:
   - `rateLimitLogin`: Máximo 5 intentos fallidos en una ventana de 15 minutos.
   - `rateLimitRegistro`: Máximo 5 cuentas creadas por hora por IP.
-- **Respuesta Estándar RFC:** Al superar el límite, responde inmediatamente con código HTTP `429 Too Many Requests`, cabeceras `Retry-After: <segundos>` y `X-RateLimit-*`, alertando de forma visual y accesible al usuario en el frontend (`LoginPage`, `AdminLoginPage` y `RegisterPage`) mientras bloquea temporalmente los envíos.
+- **Respuesta Estándar RFC:** Al superar el límite, responde inmediatamente con código HTTP `429 Too Many Requests`, cabeceras `Retry-After: <segundos>` y `X-RateLimit-*`, alertando al cliente o consumidor de la API con el tiempo de espera requerido antes de permitir un nuevo intento y bloqueando el consumo innecesario de recursos en el servidor.
 
 ---
 

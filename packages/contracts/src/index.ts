@@ -11,3 +11,5 @@ export * from "./usuarios";
 export * from "./direcciones";
 export * from "./bitacora";
 export * from "./catalogos";
+export * from "./inventario";
+export * from "./cupones";

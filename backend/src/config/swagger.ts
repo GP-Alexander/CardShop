@@ -4,7 +4,6 @@ export const swaggerSpec = {
     title: "ShopCart API — Plataforma B2C E-Commerce",
     version: "1.0.0",
     description: `
-## Tech Challenge 360 — Grupo Pentandra
 
 API REST de comercio electrónico construida con **Node.js 24 LTS**, **Express**, **TypeScript (Strict Mode)** y **Microsoft SQL Server 2022**.
 
@@ -68,6 +67,13 @@ API REST de comercio electrónico construida con **Node.js 24 LTS**, **Express**
         properties: {
           correo: { type: "string", format: "email", example: "admin@shopcart.com" },
           password: { type: "string", format: "password", example: "Admin1234!" },
+        },
+      },
+      GoogleAuthInput: {
+        type: "object",
+        required: ["idToken"],
+        properties: {
+          idToken: { type: "string", example: "eyJhbGciOiJSUzI1NiIs..." },
         },
       },
       RegistroClienteInput: {
@@ -142,18 +148,18 @@ API REST de comercio electrónico construida con **Node.js 24 LTS**, **Express**
   tags: [
     { name: "Salud del Sistema", description: "Verificación de uptime y estado de los servicios" },
     { name: "Autenticación & Sesiones", description: "Login, registro, refresh token y perfil (Argon2id + JWT)" },
-    { name: "Usuarios & Roles (RF-01)", description: "Administración de identidades, privilegios RBAC y estado de cuentas" },
+    { name: "Usuarios & Roles", description: "Administración de identidades, privilegios RBAC y estado de cuentas" },
     { name: "Direcciones de Entrega", description: "Gestión de direcciones de envío del cliente (Anti-IDOR)" },
-    { name: "Catálogo de Productos (RF-02)", description: "Productos, variantes, categorías jerárquicas y atributos" },
+    { name: "Catálogo de Productos", description: "Productos, variantes, categorías jerárquicas y atributos" },
     { name: "Catálogos Base", description: "Geografía (Departamentos, Municipios) y Catálogos RBAC" },
-    { name: "Inventario & Kardex (RF-03)", description: "Existencias por almacén, entradas de compra y kardex inmutable" },
-    { name: "Carrito de Compras (RF-04)", description: "Operaciones del carrito activo y control de cantidades" },
-    { name: "Cupones & Promociones (RF-04)", description: "Validación de cupones y límites de uso" },
-    { name: "Checkout & Reservas (RF-05)", description: "Reserva temporal atómica (15 min) y checkout concurrente" },
-    { name: "Pedidos & Pagos (RF-06)", description: "Creación de pedido, máquina de estados y confirmación de pago idempotente" },
-    { name: "Devoluciones (RF-07)", description: "Gestión de devoluciones totales/parciales con reintegro a kardex" },
-    { name: "Reportes & Analítica (RF-08)", description: "Dashboard ejecutivo con métricas de ventas y carritos abandonados" },
-    { name: "Bitácora de Auditoría (RF-09)", description: "Registro inmutable de mutaciones blindado por trigger SQL" },
+    { name: "Inventario & Kardex", description: "Existencias por almacén, entradas de compra y kardex inmutable" },
+    { name: "Carrito de Compras", description: "Operaciones del carrito activo y control de cantidades" },
+    { name: "Cupones & Promociones", description: "Validación de cupones y límites de uso" },
+    { name: "Checkout & Reservas", description: "Reserva temporal atómica (15 min) y checkout concurrente" },
+    { name: "Pedidos & Pagos", description: "Creación de pedido, máquina de estados y confirmación de pago idempotente" },
+    { name: "Devoluciones", description: "Gestión de devoluciones totales/parciales con reintegro a kardex" },
+    { name: "Reportes & Analítica", description: "Dashboard ejecutivo con métricas de ventas y carritos abandonados" },
+    { name: "Bitácora de Auditoría", description: "Registro inmutable de mutaciones blindado por trigger SQL" },
   ],
   paths: {
     "/health": {
@@ -233,6 +239,22 @@ API REST de comercio electrónico construida con **Node.js 24 LTS**, **Express**
         },
       },
     },
+    "/auth/google": {
+      post: {
+        tags: ["Autenticación & Sesiones"],
+        summary: "Iniciar sesión o registrarse con Google OAuth",
+        description: "Valida el ID token emitido por Google OAuth 2.0 y retorna la sesión con Access Token y Refresh Token en cookie HttpOnly.",
+        requestBody: {
+          required: true,
+          content: { "application/json": { schema: { $ref: "#/components/schemas/GoogleAuthInput" } } },
+        },
+        responses: {
+          200: { description: "Autenticación exitosa" },
+          401: { description: "Token de Google inválido o expirado" },
+          403: { description: "Cuenta de usuario inactiva" },
+        },
+      },
+    },
     "/auth/perfil": {
       get: {
         tags: ["Autenticación & Sesiones"],
@@ -256,11 +278,11 @@ API REST de comercio electrónico construida con **Node.js 24 LTS**, **Express**
     },
 
     /* =========================================================
-       USUARIOS (RF-01)
+       USUARIOS
        ========================================================= */
     "/usuarios": {
       get: {
-        tags: ["Usuarios & Roles (RF-01)"],
+        tags: ["Usuarios & Roles"],
         summary: "Listar usuarios paginados con filtros",
         security: [{ bearerAuth: [] }],
         parameters: [
@@ -276,7 +298,7 @@ API REST de comercio electrónico construida con **Node.js 24 LTS**, **Express**
         },
       },
       post: {
-        tags: ["Usuarios & Roles (RF-01)"],
+        tags: ["Usuarios & Roles"],
         summary: "Dar de alta personal interno (Operador o Administrador)",
         security: [{ bearerAuth: [] }],
         requestBody: {
@@ -291,7 +313,7 @@ API REST de comercio electrónico construida con **Node.js 24 LTS**, **Express**
     },
     "/usuarios/{id}": {
       get: {
-        tags: ["Usuarios & Roles (RF-01)"],
+        tags: ["Usuarios & Roles"],
         summary: "Obtener expediente y detalle de usuario",
         security: [{ bearerAuth: [] }],
         parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
@@ -303,7 +325,7 @@ API REST de comercio electrónico construida con **Node.js 24 LTS**, **Express**
     },
     "/usuarios/{id}/estado": {
       patch: {
-        tags: ["Usuarios & Roles (RF-01)"],
+        tags: ["Usuarios & Roles"],
         summary: "Activar o desactivar cuenta de usuario",
         description: "Al desactivar una cuenta, SQL Server revoca de inmediato todas las sesiones y tokens JWT asociados.",
         security: [{ bearerAuth: [] }],
@@ -319,11 +341,11 @@ API REST de comercio electrónico construida con **Node.js 24 LTS**, **Express**
     },
 
     /* =========================================================
-       CATÁLOGO DE PRODUCTOS (RF-02)
+       CATÁLOGO DE PRODUCTOS
        ========================================================= */
     "/catalogo/productos": {
       get: {
-        tags: ["Catálogo de Productos (RF-02)"],
+        tags: ["Catálogo de Productos"],
         summary: "Listar productos del catálogo público",
         description: "Búsqueda paginada con filtros por categoría, rango de precios y ordenamiento.",
         parameters: [
@@ -339,7 +361,7 @@ API REST de comercio electrónico construida con **Node.js 24 LTS**, **Express**
         },
       },
       post: {
-        tags: ["Catálogo de Productos (RF-02)"],
+        tags: ["Catálogo de Productos"],
         summary: "Crear producto con variantes atómicas",
         security: [{ bearerAuth: [] }],
         requestBody: {
@@ -354,7 +376,7 @@ API REST de comercio electrónico construida con **Node.js 24 LTS**, **Express**
     },
     "/catalogo/productos/{idOrSlug}": {
       get: {
-        tags: ["Catálogo de Productos (RF-02)"],
+        tags: ["Catálogo de Productos"],
         summary: "Obtener detalle completo de un producto",
         parameters: [{ name: "idOrSlug", in: "path", required: true, schema: { type: "string" }, example: "1" }],
         responses: {
@@ -365,7 +387,7 @@ API REST de comercio electrónico construida con **Node.js 24 LTS**, **Express**
     },
     "/catalogo/categorias": {
       get: {
-        tags: ["Catálogo de Productos (RF-02)"],
+        tags: ["Catálogo de Productos"],
         summary: "Listar árbol jerárquico de categorías",
         parameters: [{ name: "soloActivas", in: "query", schema: { type: "boolean", default: false } }],
         responses: {
@@ -373,7 +395,7 @@ API REST de comercio electrónico construida con **Node.js 24 LTS**, **Express**
         },
       },
       post: {
-        tags: ["Catálogo de Productos (RF-02)"],
+        tags: ["Catálogo de Productos"],
         summary: "Crear categoría de productos",
         security: [{ bearerAuth: [] }],
         requestBody: {
@@ -387,7 +409,7 @@ API REST de comercio electrónico construida con **Node.js 24 LTS**, **Express**
     },
     "/catalogo/atributos": {
       get: {
-        tags: ["Catálogo de Productos (RF-02)"],
+        tags: ["Catálogo de Productos"],
         summary: "Listar atributos y opciones parametrizables",
         description: "Obtiene las dimensiones configuradas (Talla, Color, etc.) y sus valores correspondientes.",
         responses: {
@@ -395,7 +417,7 @@ API REST de comercio electrónico construida con **Node.js 24 LTS**, **Express**
         },
       },
       post: {
-        tags: ["Catálogo de Productos (RF-02)"],
+        tags: ["Catálogo de Productos"],
         summary: "Crear nuevo atributo",
         security: [{ bearerAuth: [] }],
         requestBody: {
@@ -409,11 +431,11 @@ API REST de comercio electrónico construida con **Node.js 24 LTS**, **Express**
     },
 
     /* =========================================================
-       INVENTARIO & KARDEX (RF-03)
+       INVENTARIO & KARDEX
        ========================================================= */
     "/inventario": {
       get: {
-        tags: ["Inventario & Kardex (RF-03)"],
+        tags: ["Inventario & Kardex"],
         summary: "Consultar existencias consolidadas por almacén",
         security: [{ bearerAuth: [] }],
         responses: {
@@ -423,7 +445,7 @@ API REST de comercio electrónico construida con **Node.js 24 LTS**, **Express**
     },
     "/inventario/kardex": {
       get: {
-        tags: ["Inventario & Kardex (RF-03)"],
+        tags: ["Inventario & Kardex"],
         summary: "Consultar movimientos inmutables del Kardex",
         security: [{ bearerAuth: [] }],
         parameters: [
@@ -438,7 +460,7 @@ API REST de comercio electrónico construida con **Node.js 24 LTS**, **Express**
     },
     "/inventario/entrada": {
       post: {
-        tags: ["Inventario & Kardex (RF-03)"],
+        tags: ["Inventario & Kardex"],
         summary: "Registrar entrada de mercancía (Compra)",
         security: [{ bearerAuth: [] }],
         requestBody: {
@@ -466,11 +488,11 @@ API REST de comercio electrónico construida con **Node.js 24 LTS**, **Express**
     },
 
     /* =========================================================
-       CARRITO (RF-04)
+       CARRITO
        ========================================================= */
     "/carrito": {
       get: {
-        tags: ["Carrito de Compras (RF-04)"],
+        tags: ["Carrito de Compras"],
         summary: "Obtener carrito de compras activo",
         security: [{ bearerAuth: [] }],
         responses: {
@@ -480,7 +502,7 @@ API REST de comercio electrónico construida con **Node.js 24 LTS**, **Express**
     },
     "/carrito/items": {
       post: {
-        tags: ["Carrito de Compras (RF-04)"],
+        tags: ["Carrito de Compras"],
         summary: "Agregar artículo al carrito",
         security: [{ bearerAuth: [] }],
         requestBody: {
@@ -505,11 +527,11 @@ API REST de comercio electrónico construida con **Node.js 24 LTS**, **Express**
     },
 
     /* =========================================================
-       CHECKOUT & PAGOS (RF-05, RF-06)
+       CHECKOUT & PAGOS
        ========================================================= */
     "/checkout/iniciar": {
       post: {
-        tags: ["Checkout & Reservas (RF-05)"],
+        tags: ["Checkout & Reservas"],
         summary: "Iniciar checkout atómico con reserva temporal de 15 minutos",
         description: "Valida existencias, crea el pedido en estado PENDIENTE_PAGO y bloquea stock temporalmente para evitar sobreventa.",
         security: [{ bearerAuth: [] }],
@@ -535,7 +557,7 @@ API REST de comercio electrónico construida con **Node.js 24 LTS**, **Express**
     },
     "/checkout/confirmar-pago": {
       post: {
-        tags: ["Pedidos & Pagos (RF-06)"],
+        tags: ["Pedidos & Pagos"],
         summary: "Confirmar pago del pedido (Transaccional e Idempotente)",
         description: "Acepta clave de idempotencia única. Realiza la transición de PENDIENTE_PAGO a PAGADO y asienta la salida definitiva en Kardex.",
         security: [{ bearerAuth: [] }],
@@ -571,11 +593,11 @@ API REST de comercio electrónico construida con **Node.js 24 LTS**, **Express**
     },
 
     /* =========================================================
-       PEDIDOS (RF-06)
+       PEDIDOS
        ========================================================= */
     "/pedidos/mis-pedidos": {
       get: {
-        tags: ["Pedidos & Pagos (RF-06)"],
+        tags: ["Pedidos & Pagos"],
         summary: "Consultar pedidos propios del cliente (Anti-IDOR)",
         security: [{ bearerAuth: [] }],
         responses: {
@@ -585,7 +607,7 @@ API REST de comercio electrónico construida con **Node.js 24 LTS**, **Express**
     },
     "/pedidos/admin": {
       get: {
-        tags: ["Pedidos & Pagos (RF-06)"],
+        tags: ["Pedidos & Pagos"],
         summary: "Listar pedidos con filtros para operadores y administradores",
         security: [{ bearerAuth: [] }],
         parameters: [
@@ -600,11 +622,11 @@ API REST de comercio electrónico construida con **Node.js 24 LTS**, **Express**
     },
 
     /* =========================================================
-       REPORTES & AUDITORÍA (RF-08, RF-09)
+       REPORTES & AUDITORÍA
        ========================================================= */
     "/reportes/dashboard": {
       get: {
-        tags: ["Reportes & Analítica (RF-08)"],
+        tags: ["Reportes & Analítica"],
         summary: "KPIs ejecutivos consolidados",
         security: [{ bearerAuth: [] }],
         responses: {
@@ -614,7 +636,7 @@ API REST de comercio electrónico construida con **Node.js 24 LTS**, **Express**
     },
     "/bitacora": {
       get: {
-        tags: ["Bitácora de Auditoría (RF-09)"],
+        tags: ["Bitácora de Auditoría"],
         summary: "Consultar bitácora inmutable de eventos",
         description: "Tabla blindada contra UPDATE y DELETE por el trigger TR_RegistroBitacora_Inmutable.",
         security: [{ bearerAuth: [] }],

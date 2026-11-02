@@ -4,7 +4,7 @@ import { createApp } from "../../src/app";
 import { getDbPool, closeDbPool } from "../../src/config/database";
 import { limpiarRegistrosRateLimit } from "../../src/shared/middlewares/rateLimiter";
 
-describe("Extra Opcional: Rate Limiting en Autenticación (Pág. 14 del PDF)", () => {
+describe("Rate Limiting en Autenticación", () => {
   const app = createApp();
 
   beforeAll(async () => {

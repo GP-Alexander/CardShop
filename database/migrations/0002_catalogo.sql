@@ -1,16 +1,5 @@
 /*
-    ShopCart v3 - 0002 Catalogo
-    Motor: SQL Server 2019+
-    Depende de: ninguna migracion anterior (independiente de 0001).
-
-    Notas de diseno:
-      - Un producto tiene una o mas variantes. Cada variante tiene SKU, precio (IVA incluido) y atributos.
-      - Los atributos se normalizan: Atributo -> ValorAtributo -> VarianteAtributo.
-        La llave compuesta en ValorAtributo impide asociar un valor a un atributo que no le corresponde.
-      - La llave unica (IDVariante, IDProducto) permite que ImagenProducto garantice que
-        una imagen de variante pertenezca al mismo producto.
-      - Los precios se congelan en PedidoDetalle (0005), no aqui.
-      - Los productos con ventas no se borran: se desactivan (EstaActivo = 0).
+    ShopCart - 0002 Catálogo de productos, variantes y categorías
 */
 SET NOCOUNT ON;
 SET XACT_ABORT ON;
